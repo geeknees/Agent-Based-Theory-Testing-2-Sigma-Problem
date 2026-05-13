@@ -26,11 +26,12 @@ module Phases
       )
 
       raw = LLM.call(prompt, model: model)
+      $stderr.puts "[memory:#{learner_id}] LLM returned raw memory (#{raw.length} chars)"
       memory = Helpers.extract_json(raw)
 
       if memory.nil?
         $stderr.puts "[memory:#{learner_id}] WARNING: Could not parse memory JSON, using default"
-        memory = DEFAULT_MEMORY.dup
+        memory = DEFAULT_MEMORY.transform_values(&:dup)
       end
 
       $stderr.puts "[memory:#{learner_id}] Memory generated (#{memory['key_rules']&.size || 0} key rules)"

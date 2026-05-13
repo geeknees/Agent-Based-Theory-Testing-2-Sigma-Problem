@@ -32,7 +32,7 @@ module Phases
         $stderr.puts "[evaluator] WARNING: Could not parse score for attempt #{attempt_id}, using fallback"
         score = FALLBACK_SCORE.dup
       else
-        expected_total = %w[correctness reasoning_quality rule_application error_checking autonomy].sum { |k| score[k].to_i }
+        expected_total = %w[correctness reasoning_quality rule_application error_checking autonomy].sum { |k| score[k].to_f.round }
         score['total'] = expected_total
       end
 

@@ -35,7 +35,7 @@ module Phases
         { learner_id: learner_id, question: question }
       end
 
-      real_questions = questions.reject { |q| q[:question].strip.downcase.start_with?('no question') }
+      real_questions = questions.reject { |q| q[:question].strip.downcase.start_with?('no questions') }
 
       # Step 3: Teacher answers all questions at once
       if real_questions.any?

@@ -8,7 +8,7 @@ EXPERIMENT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECT_ROOT="$(cd "$EXPERIMENT_DIR/../.." && pwd)"
 
 cd "$PROJECT_ROOT"
-eval "$(mise activate zsh)" 2>/dev/null || true
+eval "$(mise activate bash)" 2>/dev/null || true
 bundle exec ruby "$EXPERIMENT_DIR/tests/test_helpers.rb"
 bundle exec ruby "$EXPERIMENT_DIR/tests/test_db.rb"
 echo "All tests passed."

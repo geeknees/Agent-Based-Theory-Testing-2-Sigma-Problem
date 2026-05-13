@@ -1,0 +1,32 @@
+[
+  {
+    "id": "recall_01",
+    "type": "recall",
+    "prompt": "Calculate the final score for this Zarn sequence: [Green, Blue, Red, Yellow]\n\nApply all rules carefully and show your reasoning.",
+    "expected_answer": {
+      "score": 21,
+      "explanation": "Green(active,2) + Blue(Green to left,active,5) + Red(modifier,0,doubles Yellow) + Yellow(doubled,14) = 2+5+0+14 = 21."
+    },
+    "correct_score": 21
+  },
+  {
+    "id": "near_transfer_01",
+    "type": "near_transfer",
+    "prompt": "Calculate the final score for this Zarn sequence: [Blue, Green, Red, Blue, Yellow]\n\nApply all rules carefully and show your reasoning.",
+    "expected_answer": {
+      "score": 19,
+      "explanation": "Blue(pos1, no Green to left, inactive=0) + Green(pos2, not last, active=2) + Red(pos3, modifier=0, doubles pos4) + Blue(pos4, Green at pos2 to left, active=5, doubled by Red=10) + Yellow(pos5, active=7). Score=0+2+0+10+7=19."
+    },
+    "correct_score": 19
+  },
+  {
+    "id": "far_transfer_01",
+    "type": "far_transfer",
+    "prompt": "You encounter a new type of token: **Purple Zarn** (base value 6). A Purple Zarn behaves exactly like a Blue Zarn but requires a Red Zarn anywhere to its left (instead of Green) to be active.\n\nCalculate the final score for: [Red, Purple, Green, Blue, Purple]\n\nApply standard rules for all existing tokens, plus the new Purple rule.",
+    "expected_answer": {
+      "score": 25,
+      "explanation": "Red(pos1,modifier=0,doubles pos2) + Purple(pos2,Red to left=active=6,doubled=12) + Green(pos3,not last,active=2) + Blue(pos4,Green at pos3 to left,active=5) + Purple(pos5,Red at pos1 to left,active=6). Score=0+12+2+5+6=25."
+    },
+    "correct_score": 25
+  }
+]

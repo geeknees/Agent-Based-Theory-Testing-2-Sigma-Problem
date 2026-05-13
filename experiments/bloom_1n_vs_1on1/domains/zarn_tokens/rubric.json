@@ -1,0 +1,60 @@
+{
+  "dimensions": {
+    "correctness": {
+      "max": 4,
+      "description": "Accuracy of the final numerical answer",
+      "levels": {
+        "0": "No answer or completely wrong",
+        "1": "Major errors in calculation",
+        "2": "Partially correct with significant errors",
+        "3": "Correct answer with minor error",
+        "4": "Fully correct final answer"
+      }
+    },
+    "reasoning_quality": {
+      "max": 4,
+      "description": "Clarity and structure of the reasoning chain",
+      "levels": {
+        "0": "No reasoning shown",
+        "1": "Minimal or incoherent reasoning",
+        "2": "Some valid reasoning with gaps",
+        "3": "Clear reasoning with minor gaps",
+        "4": "Fully explicit, step-by-step reasoning"
+      }
+    },
+    "rule_application": {
+      "max": 4,
+      "description": "Correct identification and application of domain rules",
+      "levels": {
+        "0": "No rules applied or all rules wrong",
+        "1": "One rule applied correctly",
+        "2": "Some rules applied correctly",
+        "3": "Most rules applied correctly",
+        "4": "All relevant rules applied correctly"
+      }
+    },
+    "error_checking": {
+      "max": 4,
+      "description": "Evidence of self-verification or catch-and-correct behavior",
+      "levels": {
+        "0": "No self-checking visible",
+        "1": "Minimal checking",
+        "2": "Some checking behavior",
+        "3": "Explicit checking of key steps",
+        "4": "Thorough verification throughout"
+      }
+    },
+    "autonomy": {
+      "max": 4,
+      "description": "Independent problem-solving without relying on hints or prompting",
+      "levels": {
+        "0": "Completely dependent on prompt scaffolding",
+        "1": "Needed significant guidance from memory",
+        "2": "Partially independent",
+        "3": "Mostly independent with minor memory use",
+        "4": "Fully autonomous, memory used appropriately"
+      }
+    }
+  },
+  "total_max": 20
+}

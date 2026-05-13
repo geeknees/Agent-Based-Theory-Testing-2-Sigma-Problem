@@ -110,7 +110,7 @@ module Report
     lines << "# View scores CSV"
     lines << "cat #{output_dir}/scores.csv"
     lines << "```"
-    lines.join("\n")
+    lines.join("\n") + "\n"
   end
 
   def self.avg_total(rows)

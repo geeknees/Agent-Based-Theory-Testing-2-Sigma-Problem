@@ -90,11 +90,11 @@ module DB
     run_id
   end
 
-  def self.save_agent(db, run_id:, role:, condition: nil, model:)
+  def self.save_agent(db, run_id:, role:, condition: nil, model:, profile: nil)
     id = Helpers.generate_id
     db.execute(
-      'INSERT INTO agents (id, run_id, role, condition, model) VALUES (?, ?, ?, ?, ?)',
-      [id, run_id, role, condition, model]
+      'INSERT INTO agents (id, run_id, role, condition, model, profile_json) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, run_id, role, condition, model, profile ? JSON.dump(profile) : nil]
     )
     id
   end

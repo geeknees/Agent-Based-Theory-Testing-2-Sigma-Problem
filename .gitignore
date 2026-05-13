@@ -1,0 +1,5 @@
+Gemfile.lock
+experiments/bloom_1n_vs_1on1/data/runs/
+experiments/bloom_1n_vs_1on1/data/*.db
+*.log
+.DS_Store

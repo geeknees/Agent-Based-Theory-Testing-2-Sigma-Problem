@@ -162,7 +162,7 @@ module DB
         ta.response_text,
         e.score_json
       FROM task_attempts ta
-      JOIN evaluation_tasks et ON et.id = ta.task_id AND et.run_id = ta.run_id
+      JOIN evaluation_tasks et ON et.id = ta.task_id
       LEFT JOIN evaluations e ON e.attempt_id = ta.id
       WHERE ta.run_id = ?
       ORDER BY ta.condition, ta.learner_id, et.task_type

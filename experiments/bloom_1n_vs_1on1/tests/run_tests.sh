@@ -12,4 +12,5 @@ eval "$(mise activate bash)" 2>/dev/null || true
 bundle exec ruby "$EXPERIMENT_DIR/tests/test_helpers.rb"
 bundle exec ruby "$EXPERIMENT_DIR/tests/test_db.rb"
 bundle exec ruby "$EXPERIMENT_DIR/tests/test_scorer.rb"
+bundle exec ruby "$EXPERIMENT_DIR/tests/test_report_classification.rb"
 echo "All tests passed."

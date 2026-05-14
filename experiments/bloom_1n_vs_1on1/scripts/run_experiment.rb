@@ -19,6 +19,7 @@ require 'phases/tutoring'
 require 'phases/memory'
 require 'phases/solver'
 require 'phases/evaluator'
+require 'phases/no_education'
 require 'report'
 
 config_path = ARGV[0] or abort "Usage: #{$0} <config.yml>"
@@ -56,8 +57,9 @@ db = DB.setup(db_path)
 DB.save_run(db, run_id, run_name, config)
 File.write(File.join(run_dir, 'config.json'), JSON.pretty_generate(config))
 
-n_classroom = config.dig('experiment', 'n_classroom') || 4
-n_tutoring  = config.dig('experiment', 'n_tutoring')  || 4
+n_classroom    = config.dig('experiment', 'n_classroom')    || 4
+n_tutoring     = config.dig('experiment', 'n_tutoring')     || 4
+n_no_education = config.dig('experiment', 'n_no_education') || 4
 
 teacher_id = DB.save_agent(db, run_id: run_id, role: 'classroom_teacher',
                             model: config.dig('models', 'teacher'))
@@ -72,11 +74,16 @@ tutoring_learner_ids = n_tutoring.times.map do
   DB.save_agent(db, run_id: run_id, role: 'learner', condition: '1on1',
                 model: config.dig('models', 'learner'))
 end
+no_education_learner_ids = n_no_education.times.map do
+  DB.save_agent(db, run_id: run_id, role: 'learner', condition: 'no_education',
+                model: config.dig('models', 'problem_solver'))
+end
 evaluator_id = DB.save_agent(db, run_id: run_id, role: 'evaluator',
                               model: config.dig('models', 'evaluator'))
 
 all_learners = classroom_learner_ids.map { |id| { id: id, condition: 'classroom' } } +
-               tutoring_learner_ids.map  { |id| { id: id, condition: '1on1' } }
+               tutoring_learner_ids.map  { |id| { id: id, condition: '1on1' } } +
+               no_education_learner_ids.map { |id| { id: id, condition: 'no_education' } }
 
 # === PHASE 1: Classroom Education ===
 $stderr.puts "[main] Phase 1: Classroom education (#{n_classroom} learners)"
@@ -108,9 +115,23 @@ tutoring_learner_ids.each do |learner_id|
   File.open(File.join(run_dir, 'transcripts.jsonl'), 'a') { |f| f.puts JSON.dump(transcript) }
 end
 
-# === PHASE 3: Memory Generation ===
-$stderr.puts "[main] Phase 3: Memory generation (#{all_learners.size} learners)"
-all_learners.each do |learner|
+# === PHASE 2.5: No-Education Baseline Memory ===
+$stderr.puts "[main] Phase 2.5: No-education baseline (#{n_no_education} learners, zero LLM calls)"
+no_education_learner_ids.each do |learner_id|
+  memory = Phases::NoEducation.generate_memory(learner_id: learner_id)
+  DB.save_learner_memory(db,
+    run_id: run_id, learner_id: learner_id,
+    condition: 'no_education', memory: memory
+  )
+  File.open(File.join(run_dir, 'memories.jsonl'), 'a') do |f|
+    f.puts JSON.dump({ learner_id: learner_id, condition: 'no_education', memory: memory })
+  end
+end
+
+# === PHASE 3: Memory Generation (classroom and tutoring only) ===
+$stderr.puts "[main] Phase 3: Memory generation (#{classroom_learner_ids.size + tutoring_learner_ids.size} learners)"
+(classroom_learner_ids.map { |id| { id: id, condition: 'classroom' } } +
+ tutoring_learner_ids.map  { |id| { id: id, condition: '1on1' } }).each do |learner|
   transcript_row = db.execute(
     'SELECT transcript_json FROM learning_sessions WHERE run_id = ? AND learner_id = ? ORDER BY rowid DESC LIMIT 1',
     [run_id, learner[:id]]
@@ -136,7 +157,7 @@ $stderr.puts "[main] Phase 4+5: Solving + scoring (#{all_learners.size} × #{eva
 eval_tasks.each do |task|
   DB.save_evaluation_task(db,
     run_id: run_id, task_id: task['id'], task_type: task['task_type'],
-    prompt: task['prompt'], expected_answer: task, rubric: rubric
+    prompt: task['learner_prompt'], expected_answer: task, rubric: rubric
   )
 end
 

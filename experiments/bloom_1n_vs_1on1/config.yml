@@ -1,10 +1,13 @@
 experiment:
-  name: "bloom_1n_vs_1on1_v1"
+  name: "bloom_1n_vs_1on1_v2"
   domain: "zarn_tokens"
   n_classroom: 4
   n_tutoring: 4
   classroom_questions_per_learner: 1
-  tutoring_turns: 3
+  tutoring_turns: 2
+  eval_tasks_file: "eval_tasks_v2.json"
+  max_memory_words: 120
+  ceiling_threshold: 0.9
 
 models:
   teacher: "claude-sonnet-4-6"

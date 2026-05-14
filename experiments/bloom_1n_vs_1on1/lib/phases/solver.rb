@@ -16,7 +16,7 @@ module Phases
       prompt = Helpers.build_prompt(
         system: solver_prompt,
         context: "YOUR LEARNING MEMORY:\n#{memory_text}",
-        instruction: task['prompt']
+        instruction: task['learner_prompt']
       )
 
       response = LLM.call(prompt, model: model, tracker: tracker, phase: 'evaluation')
@@ -27,7 +27,7 @@ module Phases
         retry_prompt = Helpers.build_prompt(
           system: solver_prompt,
           context: "YOUR LEARNING MEMORY:\n#{memory_text}",
-          instruction: task['prompt'] + "\n\nIMPORTANT: Respond ONLY with the JSON object. No other text."
+          instruction: task['learner_prompt'] + "\n\nIMPORTANT: Respond ONLY with the JSON object. No other text."
         )
         response = LLM.call(retry_prompt, model: model, tracker: tracker, phase: 'evaluation')
         parsed   = Helpers.extract_json(response)

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "l1_recall_01",
+    "difficulty": "L1",
+    "task_type": "recall",
+    "prompt": "Rules:\n- Red: modifier only (0 pts), doubles the token immediately to its right.\n- Blue: active (5 pts) only if Green appears somewhere to its left; else 0.\n- Green: inactive (0) if last in sequence; else active (2).\n- Yellow: always active (7 pts).\n\nCalculate the final score for: [Green, Blue, Yellow]\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "14",
+    "expected_active_tokens": ["Green", "Blue", "Yellow"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"14": ["14 points", "score: 14", "total: 14", "score is 14"]}
+  },
+  {
+    "id": "l2_edge_case_01",
+    "difficulty": "L2",
+    "task_type": "edge_case",
+    "prompt": "Rules:\n- Red: modifier only (0 pts), doubles the token immediately to its right.\n- Blue: active (5 pts) only if Green appears somewhere to its left; else 0.\n- Green: inactive (0) if last in sequence; else active (2).\n- Yellow: always active (7 pts).\n\nCalculate the final score for: [Blue, Green]\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "0",
+    "expected_active_tokens": [],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"0": ["zero", "0 points", "score: 0", "score is 0"]}
+  },
+  {
+    "id": "l2_edge_case_02",
+    "difficulty": "L2",
+    "task_type": "edge_case",
+    "prompt": "Rules:\n- Red: modifier only (0 pts), doubles the token immediately to its right.\n- Blue: active (5 pts) only if Green appears somewhere to its left; else 0.\n- Green: inactive (0) if last in sequence; else active (2).\n- Yellow: always active (7 pts).\n- If a token is inactive, doubling it still gives 0.\n\nCalculate the final score for: [Red, Blue, Yellow]\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "7",
+    "expected_active_tokens": ["Yellow"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"7": ["7 points", "score: 7", "score is 7"]}
+  },
+  {
+    "id": "l3_rule_interaction_01",
+    "difficulty": "L3",
+    "task_type": "rule_interaction",
+    "prompt": "Rules:\n- Red: modifier only (0 pts), doubles the token immediately to its right.\n- Blue: active (5 pts) only if Green appears somewhere to its left; else 0.\n- Green: inactive (0) if last in sequence; else active (2).\n- Yellow: always active (7 pts).\n- If a token is inactive, doubling it still gives 0.\n\nCalculate the final score for: [Green, Red, Blue]\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "12",
+    "expected_active_tokens": ["Green", "Blue"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"12": ["12 points", "score: 12", "score is 12"]}
+  },
+  {
+    "id": "l4_debug_01",
+    "difficulty": "L4",
+    "task_type": "debugging",
+    "prompt": "Rules:\n- Red: modifier only (0 pts), doubles the token immediately to its right.\n- Blue: active (5 pts) only if Green appears somewhere to its left; else 0.\n- Green: inactive (0) if last in sequence; else active (2).\n- Yellow: always active (7 pts).\n- If a token is inactive, doubling it still gives 0.\n\nA student solved [Green, Red, Blue, Yellow, Green] and wrote:\n\"Score = 2 + 10 + 7 + 2 = 21\"\n\nFind ALL mistakes and give the correct score.\n\nRespond in JSON only:\n{\"answer\": \"<correct score>\", \"active_tokens\": [\"list actually active token names\"], \"mistakes_found\": [\"describe each mistake\"], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "19",
+    "expected_active_tokens": ["Green", "Blue", "Yellow"],
+    "expected_mistakes": ["Green at last position is inactive"],
+    "acceptable_aliases": {"19": ["19 points", "score: 19", "score is 19"]}
+  },
+  {
+    "id": "l4_debug_02",
+    "difficulty": "L4",
+    "task_type": "debugging",
+    "prompt": "Rules:\n- Red: modifier only (0 pts), doubles the token immediately to its right.\n- Blue: active (5 pts) only if Green appears somewhere to its left; else 0.\n- Green: inactive (0) if last in sequence; else active (2).\n- Yellow: always active (7 pts).\n- If a token is inactive, doubling it still gives 0.\n\nA student solved [Blue, Red, Green] and wrote:\n\"Score = 0 + 0 + 4 = 4, because Red doubles Green to 4\"\n\nFind ALL mistakes and give the correct score.\n\nRespond in JSON only:\n{\"answer\": \"<correct score>\", \"active_tokens\": [], \"mistakes_found\": [\"describe each mistake\"], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "0",
+    "expected_active_tokens": [],
+    "expected_mistakes": ["Green at last position is inactive", "inactive tokens cannot be activated by Red"],
+    "acceptable_aliases": {"0": ["zero", "0 points", "score: 0"]}
+  },
+  {
+    "id": "l5_counterexample_01",
+    "difficulty": "L5",
+    "task_type": "counterexample",
+    "prompt": "Rules:\n- Red: modifier only (0 pts), doubles the token immediately to its right.\n- Blue: active (5 pts) only if Green appears somewhere to its left; else 0.\n- Green: inactive (0) if last in sequence; else active (2).\n- Yellow: always active (7 pts).\n\nClaim: \"If a sequence contains at least one Green that is not at the last position, then every Blue token in the sequence is active.\"\n\nTrue or false? If false, give a sequence where at least one Blue is still inactive despite a non-final Green existing.\n\nRespond in JSON only:\n{\"answer\": \"false\", \"active_tokens\": [\"active tokens in your counterexample\"], \"mistakes_found\": [\"which Blue is inactive and why\"], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "false",
+    "expected_active_tokens": ["Green", "Blue"],
+    "expected_mistakes": ["Blue before Green has no Green to its left"],
+    "acceptable_aliases": {"false": ["False", "FALSE", "no", "incorrect", "the claim is false"]}
+  },
+  {
+    "id": "l6_induction_01",
+    "difficulty": "L6",
+    "task_type": "short_rule_induction",
+    "prompt": "Standard rules:\n- Red: modifier only (0 pts), doubles the token immediately to its right.\n- Blue: active (5 pts) only if Green appears somewhere to its left; else 0.\n- Green: inactive (0) if last in sequence; else active (2).\n- Yellow: always active (7 pts).\n- If a token is inactive, doubling it still gives 0.\n\nNew token: Orange Zarn (base value 4).\nNew rule: Orange is active (4 pts) only if the token IMMEDIATELY to its left is Yellow. Otherwise Orange is inactive (0).\n\nCalculate the score for: [Yellow, Orange, Blue, Green]\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "11",
+    "expected_active_tokens": ["Yellow", "Orange"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"11": ["11 points", "score: 11", "score is 11"]}
+  }
+]

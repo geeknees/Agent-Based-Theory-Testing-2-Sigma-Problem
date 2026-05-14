@@ -64,13 +64,12 @@ module Report
     too_easy = ceiling_data.select { |r| r[:ceiling_effect] }.map { |r| r[:task_type] }
     lines << "## Ceiling Effect Summary"
     lines << ""
-    lines << "> Tasks where both conditions score >#{(CEILING_THRESHOLD * 100).round}% correct answers are flagged as too easy."
+    lines << "> Classification: too_easy (all≥90%), education_sensitive (edu>baseline+10pp), condition_sensitive (tutoring≠classroom by >10pp), too_hard (all<30%), unclear"
     lines << ""
-    lines << "| Task Type | Difficulty | Classroom Correct% | Tutoring Correct% | Ceiling? |"
-    lines << "|-----------|-----------|-------------------|-------------------|---------|"
+    lines << "| Task Type | Difficulty | No-Ed Correct% | Classroom Correct% | Tutoring Correct% | Classification |"
+    lines << "|-----------|-----------|----------------|-------------------|-------------------|----------------|"
     ceiling_data.each do |row|
-      flag = row[:ceiling_effect] ? "YES ⚠️" : "no"
-      lines << "| #{row[:task_type]} | #{row[:difficulty]} | #{(row[:classroom_pct] * 100).round}% | #{(row[:tutoring_pct] * 100).round}% | #{flag} |"
+      lines << "| #{row[:task_type]} | #{row[:difficulty]} | #{(row[:no_ed_pct] * 100).round}% | #{(row[:classroom_pct] * 100).round}% | #{(row[:tutoring_pct] * 100).round}% | #{row[:classification]} |"
     end
     lines << ""
     lines << (too_easy.any? ? "**Task types too easy:** #{too_easy.join(', ')}" : "**No ceiling effects detected.**")
@@ -81,7 +80,7 @@ module Report
     lines << ""
     lines << "| Condition | Learners | Attempts | Correct% |"
     lines << "|-----------|---------|---------|---------|"
-    %w[classroom 1on1].each do |cond|
+    %w[no_education classroom 1on1].each do |cond|
       cond_rows = by_condition[cond] || []
       pct = avg_correctness(cond_rows)
       n   = cond_rows.map { |r| r['learner_id'] }.uniq.size
@@ -92,28 +91,30 @@ module Report
     # Score by task type
     lines << "## Score by Task Type × Condition"
     lines << ""
-    lines << "| Task Type | Difficulty | Classroom Correct% | Tutoring Correct% |"
-    lines << "|-----------|-----------|-------------------|-------------------|"
+    lines << "| Task Type | Difficulty | No-Ed Correct% | Classroom Correct% | Tutoring Correct% |"
+    lines << "|-----------|-----------|----------------|-------------------|-------------------|"
     rows.group_by { |r| r['task_type'] }.sort.each do |task_type, type_rows|
-      diff  = extract_difficulty(type_rows.first['task_id'])
-      c_pct = avg_correctness(type_rows.select { |r| r['condition'] == 'classroom' })
-      t_pct = avg_correctness(type_rows.select { |r| r['condition'] == '1on1' })
-      lines << "| #{task_type} | #{diff} | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
+      diff   = extract_difficulty(type_rows.first['task_id'])
+      no_pct = avg_correctness(type_rows.select { |r| r['condition'] == 'no_education' })
+      c_pct  = avg_correctness(type_rows.select { |r| r['condition'] == 'classroom' })
+      t_pct  = avg_correctness(type_rows.select { |r| r['condition'] == '1on1' })
+      lines << "| #{task_type} | #{diff} | #{(no_pct * 100).round}% | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
     end
     lines << ""
 
     # Score by difficulty level
     lines << "## Score by Difficulty Level"
     lines << ""
-    lines << "| Level | Task Types | Classroom Correct% | Tutoring Correct% |"
-    lines << "|-------|-----------|-------------------|-------------------|"
+    lines << "| Level | Task Types | No-Ed Correct% | Classroom Correct% | Tutoring Correct% |"
+    lines << "|-------|-----------|----------------|-------------------|-------------------|"
     DIFFICULTY_LEVELS.each do |level|
       level_rows = rows.select { |r| extract_difficulty(r['task_id']) == level }
       next if level_rows.empty?
-      types = level_rows.map { |r| r['task_type'] }.uniq.join(', ')
-      c_pct = avg_correctness(level_rows.select { |r| r['condition'] == 'classroom' })
-      t_pct = avg_correctness(level_rows.select { |r| r['condition'] == '1on1' })
-      lines << "| #{level} | #{types} | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
+      types  = level_rows.map { |r| r['task_type'] }.uniq.join(', ')
+      no_pct = avg_correctness(level_rows.select { |r| r['condition'] == 'no_education' })
+      c_pct  = avg_correctness(level_rows.select { |r| r['condition'] == 'classroom' })
+      t_pct  = avg_correctness(level_rows.select { |r| r['condition'] == '1on1' })
+      lines << "| #{level} | #{types} | #{(no_pct * 100).round}% | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
     end
     lines << ""
 
@@ -166,27 +167,48 @@ module Report
   def self.detect_ceiling(rows, run_config)
     threshold = (run_config.dig('experiment', 'ceiling_threshold') || CEILING_THRESHOLD).to_f
     rows.group_by { |r| r['task_type'] }.map do |task_type, type_rows|
+      no_ed_pct  = avg_correctness(type_rows.select { |r| r['condition'] == 'no_education' })
       c_pct      = avg_correctness(type_rows.select { |r| r['condition'] == 'classroom' })
       t_pct      = avg_correctness(type_rows.select { |r| r['condition'] == '1on1' })
       difficulty = extract_difficulty(type_rows.first['task_id'])
+      ceiling    = no_ed_pct >= threshold && c_pct >= threshold && t_pct >= threshold
       {
-        task_type: task_type, difficulty: difficulty,
-        classroom_pct: c_pct, tutoring_pct: t_pct,
-        ceiling_effect: c_pct >= threshold && t_pct >= threshold
+        task_type:      task_type,
+        difficulty:     difficulty,
+        no_ed_pct:      no_ed_pct,
+        classroom_pct:  c_pct,
+        tutoring_pct:   t_pct,
+        ceiling_effect: ceiling,
+        classification: classify_task_type(no_ed_pct, c_pct, t_pct, threshold: threshold)
       }
     end.sort_by { |r| DIFFICULTY_LEVELS.index(r[:difficulty]) || 99 }
+  end
+
+  def self.classify_task_type(no_ed_pct, classroom_pct, tutoring_pct, threshold:)
+    all_high       = no_ed_pct >= threshold && classroom_pct >= threshold && tutoring_pct >= threshold
+    all_low        = no_ed_pct < 0.3 && classroom_pct < 0.3 && tutoring_pct < 0.3
+    edu_helps      = classroom_pct > no_ed_pct + 0.1 || tutoring_pct > no_ed_pct + 0.1
+    both_edu_help  = [classroom_pct, tutoring_pct].min > no_ed_pct + 0.2
+    cond_diff      = (tutoring_pct - classroom_pct).abs > 0.1
+
+    return 'too_easy'            if all_high
+    return 'too_hard'            if all_low
+    return 'condition_sensitive' if both_edu_help && cond_diff
+    return 'education_sensitive' if edu_helps
+    'unclear'
   end
 
   def self.build_token_data(token_summary, by_condition)
     edu_classroom = (token_summary['education_classroom'] || {})['total_tokens'].to_i
     edu_tutoring  = (token_summary['education_tutoring']  || {})['total_tokens'].to_i
-    c_pct  = avg_correctness(by_condition['classroom'] || [])
-    t_pct  = avg_correctness(by_condition['1on1'] || [])
-    gain   = t_pct - c_pct
-    extra  = [edu_tutoring - edu_classroom, 0].max
+    c_pct   = avg_correctness(by_condition['classroom']    || [])
+    t_pct   = avg_correctness(by_condition['1on1']         || [])
+    no_pct  = avg_correctness(by_condition['no_education'] || [])
+    gain    = t_pct - c_pct
+    extra   = [edu_tutoring - edu_classroom, 0].max
     gain_per_1k = extra > 0 ? (gain * 100) / (extra / 1000.0) : 0.0
-    { classroom_pct: c_pct, tutoring_pct: t_pct, tutoring_gain: gain,
-      tutoring_extra: extra, gain_per_1k: gain_per_1k }
+    { classroom_pct: c_pct, tutoring_pct: t_pct, no_ed_pct: no_pct,
+      tutoring_gain: gain, tutoring_extra: extra, gain_per_1k: gain_per_1k }
   end
 
   def self.extract_difficulty(task_id)

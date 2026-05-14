@@ -19,6 +19,36 @@ Learning is operationalized as the creation of condition-specific memory from ed
 
 This is exploratory theory testing and protocol development, not a proof of educational claims.
 
+## v3 Methodology: Memory-Only Evaluation
+
+In v3, evaluation tasks no longer include the rules in the learner-visible prompt.
+
+Learners must rely on compact memory generated during the education phase. Hidden rules are used only by the auto-scorer.
+
+This prevents the experiment from measuring simple in-context rule reading and better isolates the effect of the educational condition.
+
+### Three conditions in v3
+
+| Condition | Education | Memory |
+|-----------|-----------|--------|
+| no_education | None | Empty (baseline) |
+| classroom | 1:N lesson + Q&A | Compact memory from transcript |
+| tutoring | 1on1 (2 exchanges) | Compact memory from transcript |
+
+### Task classification
+
+| Classification | Meaning |
+|---------------|---------|
+| too_easy | All 3 conditions ≥ 90% correct |
+| too_hard | All 3 conditions < 30% correct |
+| education_sensitive | Classroom or tutoring clearly outperforms no_education |
+| condition_sensitive | Education helps AND tutoring differs from classroom |
+| unclear | No strong signal in any direction |
+
+### Calibration with weaker model
+
+To diagnose task difficulty, set `learner_diagnostic` in config to a weaker model (e.g., `claude-haiku-4-5-20251001`) and re-run with `learner` pointing to that model. If the weaker model performs much worse, the task is genuinely hard. If it also solves easily, the task design needs rethinking.
+
 ## How to Run
 
 ```bash

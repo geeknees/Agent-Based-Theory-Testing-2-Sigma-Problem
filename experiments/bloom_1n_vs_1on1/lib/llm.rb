@@ -1,11 +1,12 @@
 # ABOUTME: Thin wrapper around `claude --print` for synchronous LLM calls
-# ABOUTME: Accepts optional TokenTracker and phase name for token usage tracking
+# ABOUTME: Handles token-rate-limit errors by waiting for the rate limit window to reset
 
 require 'open3'
 
 module LLM
-  MAX_RETRIES   = 3
-  INTER_CALL_PAUSE = 8  # seconds between calls to avoid rate limits
+  MAX_RETRIES      = 5    # up to 5 retries
+  RATE_LIMIT_WAIT  = 65   # wait 65s per retry (>1 min window reset)
+  INTER_CALL_PAUSE = 2    # brief courtesy pause between successful calls
 
   def self.call(prompt, model: nil, tracker: nil, phase: nil)
     args = ['claude', '--print']
@@ -23,8 +24,8 @@ module LLM
       text
     rescue RuntimeError => e
       if attempts < MAX_RETRIES
-        wait = attempts * 30  # 30s then 60s
-        $stderr.puts "[LLM] Transient error, retrying in #{wait}s (attempt #{attempts}/#{MAX_RETRIES - 1})"
+        wait = RATE_LIMIT_WAIT * attempts  # 65s, 130s, 195s, 260s
+        $stderr.puts "[LLM] Token rate limit — waiting #{wait}s for reset (attempt #{attempts}/#{MAX_RETRIES - 1})"
         sleep wait
         retry
       end

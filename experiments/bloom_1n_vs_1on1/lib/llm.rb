@@ -4,7 +4,8 @@
 require 'open3'
 
 module LLM
-  MAX_RETRIES = 3
+  MAX_RETRIES   = 3
+  INTER_CALL_PAUSE = 3  # seconds between calls to avoid rate limits
 
   def self.call(prompt, model: nil, tracker: nil, phase: nil)
     args = ['claude', '--print']
@@ -18,11 +19,12 @@ module LLM
       end
       text = stdout.strip
       tracker.track(phase, prompt, text) if tracker && phase
+      sleep INTER_CALL_PAUSE
       text
     rescue RuntimeError => e
       if attempts < MAX_RETRIES
-        wait = attempts * 10
-        $stderr.puts "[LLM] Transient error, retrying in #{wait}s (attempt #{attempts}/#{MAX_RETRIES - 1}): #{e.message}"
+        wait = attempts * 30  # 30s then 60s
+        $stderr.puts "[LLM] Transient error, retrying in #{wait}s (attempt #{attempts}/#{MAX_RETRIES - 1})"
         sleep wait
         retry
       end

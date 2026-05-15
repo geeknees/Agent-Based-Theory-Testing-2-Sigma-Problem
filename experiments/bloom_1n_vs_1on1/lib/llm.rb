@@ -5,7 +5,7 @@ require 'open3'
 
 module LLM
   MAX_RETRIES   = 3
-  INTER_CALL_PAUSE = 3  # seconds between calls to avoid rate limits
+  INTER_CALL_PAUSE = 8  # seconds between calls to avoid rate limits
 
   def self.call(prompt, model: nil, tracker: nil, phase: nil)
     args = ['claude', '--print']

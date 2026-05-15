@@ -1,9 +1,9 @@
 experiment:
   name: "bloom_1n_vs_1on1_v4"
   domain: "zarn_tokens"
-  n_classroom: 6
-  n_tutoring: 6
-  n_no_education: 4
+  n_classroom: 4
+  n_tutoring: 4
+  n_no_education: 3
   classroom_questions_per_learner: 1
   tutoring_turns: 4
   eval_tasks_file: "eval_tasks_v4.json"

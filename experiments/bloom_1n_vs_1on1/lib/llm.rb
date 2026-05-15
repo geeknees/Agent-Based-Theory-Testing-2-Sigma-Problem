@@ -5,9 +5,9 @@ require 'open3'
 
 module LLM
   # Token rate limit (TPM) resets in approximately 5 hours.
-  # RATE_LIMIT_WAIT is set to 5.5 hours to safely clear the window.
-  MAX_RETRIES      = 2
-  RATE_LIMIT_WAIT  = 19800  # 5.5 hours in seconds
+  # MAX_RETRIES is large so the experiment auto-resumes after each rate limit hit.
+  MAX_RETRIES      = 20     # enough retries for multi-day runs
+  RATE_LIMIT_WAIT  = 19800  # 5.5 hours per retry
   INTER_CALL_PAUSE = 2      # brief courtesy pause between successful calls
 
   def self.call(prompt, model: nil, tracker: nil, phase: nil)

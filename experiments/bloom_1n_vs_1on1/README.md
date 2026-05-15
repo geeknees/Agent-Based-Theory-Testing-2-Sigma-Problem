@@ -49,6 +49,30 @@ This prevents the experiment from measuring simple in-context rule reading and b
 
 To diagnose task difficulty, set `learner_diagnostic` in config to a weaker model (e.g., `claude-haiku-4-5-20251001`) and re-run with `learner` pointing to that model. If the weaker model performs much worse, the task is genuinely hard. If it also solves easily, the task design needs rethinking.
 
+## v4 Methodology: Longer Tutoring + Task Validity Fixes
+
+### Changes from v3
+
+**Tutoring extended to 4 exchanges (8 turns):**
+
+| Exchange | Tutor | Learner |
+|----------|-------|---------|
+| 1 | Opener — teach first concept with example | Response — state understanding or ask question |
+| 2 | Diagnostic Q1 — apply a rule to a sequence | Answer Q1 — step-by-step reasoning |
+| 3 | **Targeted feedback** — correct errors explicitly | **Reflection** — restate corrected rule in own words |
+| 4 | Diagnostic Q2 — harder, tests different rule | Answer Q2 — apply corrected understanding |
+
+Exchange 3 (feedback + reflection) is the critical addition. In v3, the tutor identified a misconception in Exchange 2 but had no chance to correct it. Exchange 3 closes this loop.
+
+**Task redesigns:**
+
+| Task | v3 problem | v4 fix |
+|------|------------|--------|
+| L5 counterexample | Solvable by pure logic (no domain rules needed) | Replaced with l5_debug_03: debugging [Red,Green,Blue,Green] where Red doubles Green, not Blue |
+| L6 induction | Sequence [Yellow,Orange,Blue,Green] required 3 simultaneous rules | Simplified to [Yellow,Orange,Green] — tests Orange rule + Green end rule only |
+
+**n increased:** n_classroom=6, n_tutoring=6, n_no_education=4 for better statistical power.
+
 ## How to Run
 
 ```bash

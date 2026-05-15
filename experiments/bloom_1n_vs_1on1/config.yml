@@ -1,12 +1,12 @@
 experiment:
-  name: "bloom_1n_vs_1on1_v3"
+  name: "bloom_1n_vs_1on1_v4"
   domain: "zarn_tokens"
-  n_classroom: 4
-  n_tutoring: 4
+  n_classroom: 6
+  n_tutoring: 6
   n_no_education: 4
   classroom_questions_per_learner: 1
-  tutoring_turns: 2
-  eval_tasks_file: "eval_tasks_v3.json"
+  tutoring_turns: 4
+  eval_tasks_file: "eval_tasks_v4.json"
   max_memory_words: 120
   ceiling_threshold: 0.9
 

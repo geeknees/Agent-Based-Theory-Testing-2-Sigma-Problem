@@ -4,9 +4,11 @@
 require 'open3'
 
 module LLM
-  MAX_RETRIES      = 5    # up to 5 retries
-  RATE_LIMIT_WAIT  = 65   # wait 65s per retry (>1 min window reset)
-  INTER_CALL_PAUSE = 2    # brief courtesy pause between successful calls
+  # Token rate limit (TPM) resets in approximately 5 hours.
+  # RATE_LIMIT_WAIT is set to 5.5 hours to safely clear the window.
+  MAX_RETRIES      = 2
+  RATE_LIMIT_WAIT  = 19800  # 5.5 hours in seconds
+  INTER_CALL_PAUSE = 2      # brief courtesy pause between successful calls
 
   def self.call(prompt, model: nil, tracker: nil, phase: nil)
     args = ['claude', '--print']
@@ -24,9 +26,9 @@ module LLM
       text
     rescue RuntimeError => e
       if attempts < MAX_RETRIES
-        wait = RATE_LIMIT_WAIT * attempts  # 65s, 130s, 195s, 260s
-        $stderr.puts "[LLM] Token rate limit — waiting #{wait}s for reset (attempt #{attempts}/#{MAX_RETRIES - 1})"
-        sleep wait
+        reset_at = Time.now + RATE_LIMIT_WAIT
+        $stderr.puts "[LLM] Token rate limit hit. Waiting #{RATE_LIMIT_WAIT / 3600.0}h for reset (resumes ~#{reset_at.strftime('%H:%M')})"
+        sleep RATE_LIMIT_WAIT
         retry
       end
       raise

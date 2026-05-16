@@ -1,5 +1,5 @@
-# ABOUTME: Main entry point for the Bloom 2 Sigma experiment orchestrator
-# ABOUTME: Runs all phases with token tracking; outputs 7 files per run including ceiling-aware report
+# ABOUTME: Main entry point for the Bloom 2 Sigma v5 heterogeneity experiment
+# ABOUTME: Runs 4 conditions with explicit learner profiles; outputs 7 files plus profile-aware report
 
 require 'yaml'
 require 'json'
@@ -14,6 +14,7 @@ require 'llm'
 require 'helpers'
 require 'token_tracker'
 require 'scorer'
+require 'profiles'
 require 'phases/classroom'
 require 'phases/tutoring'
 require 'phases/memory'
@@ -39,13 +40,11 @@ $stderr.puts "[main] Starting run #{run_id}"
 
 tracker = TokenTracker.new
 
-# Load domain content
-tasks_file = config.dig('experiment', 'eval_tasks_file') || 'eval_tasks_v2.json'
+tasks_file = config.dig('experiment', 'eval_tasks_file') || 'eval_tasks_v4.json'
 lesson     = Helpers.load_file(File.join(domain_path, 'lesson.md'))
 eval_tasks = JSON.parse(Helpers.load_file(File.join(domain_path, tasks_file)))
 rubric     = JSON.parse(Helpers.load_file(File.join(domain_path, 'rubric.json')))
 
-# Load prompts
 teacher_prompt    = Helpers.load_file(File.join(prompts_path, 'classroom_teacher.md'))
 tutor_prompt      = Helpers.load_file(File.join(prompts_path, 'one_on_one_tutor.md'))
 learner_prompt    = Helpers.load_file(File.join(prompts_path, 'learner.md'))
@@ -57,56 +56,90 @@ db = DB.setup(db_path)
 DB.save_run(db, run_id, run_name, config)
 File.write(File.join(run_dir, 'config.json'), JSON.pretty_generate(config))
 
-n_classroom    = config.dig('experiment', 'n_classroom')    || 4
-n_tutoring     = config.dig('experiment', 'n_tutoring')     || 4
-n_no_education = config.dig('experiment', 'n_no_education') || 4
+n_homo   = config.dig('experiment', 'n_homogeneous_classroom')  || 4
+n_hetero = config.dig('experiment', 'n_heterogeneous_classroom') || 4
+n_tut    = config.dig('experiment', 'n_tutoring')               || 4
+n_no_ed  = config.dig('experiment', 'n_no_education')           || 3
+
+homo_profiles   = Profiles::HOMOGENEOUS.first(n_homo)
+hetero_profiles = Profiles::HETEROGENEOUS.first([n_hetero, n_tut].max)
 
 teacher_id = DB.save_agent(db, run_id: run_id, role: 'classroom_teacher',
                             model: config.dig('models', 'teacher'))
-classroom_learner_ids = n_classroom.times.map do
-  DB.save_agent(db, run_id: run_id, role: 'learner', condition: 'classroom',
-                model: config.dig('models', 'learner'))
-end
-
-tutor_id = DB.save_agent(db, run_id: run_id, role: 'tutor',
-                          model: config.dig('models', 'tutor'))
-tutoring_learner_ids = n_tutoring.times.map do
-  DB.save_agent(db, run_id: run_id, role: 'learner', condition: '1on1',
-                model: config.dig('models', 'learner'))
-end
-no_education_learner_ids = n_no_education.times.map do
-  DB.save_agent(db, run_id: run_id, role: 'learner', condition: 'no_education',
-                model: config.dig('models', 'problem_solver'))
-end
+tutor_id   = DB.save_agent(db, run_id: run_id, role: 'tutor',
+                            model: config.dig('models', 'tutor'))
 evaluator_id = DB.save_agent(db, run_id: run_id, role: 'evaluator',
                               model: config.dig('models', 'evaluator'))
 
-all_learners = classroom_learner_ids.map { |id| { id: id, condition: 'classroom' } } +
-               tutoring_learner_ids.map  { |id| { id: id, condition: '1on1' } } +
-               no_education_learner_ids.map { |id| { id: id, condition: 'no_education' } }
+homo_classroom_ids = homo_profiles.map do |profile|
+  DB.save_agent(db, run_id: run_id, role: 'learner', condition: 'homogeneous_classroom',
+                model: config.dig('models', 'learner'), profile: profile)
+end
 
-# === PHASE 1: Classroom Education ===
-$stderr.puts "[main] Phase 1: Classroom education (#{n_classroom} learners)"
-classroom_transcript = Phases::Classroom.run(
-  teacher_id: teacher_id, learner_ids: classroom_learner_ids,
+hetero_classroom_ids = hetero_profiles.first(n_hetero).map do |profile|
+  DB.save_agent(db, run_id: run_id, role: 'learner', condition: 'heterogeneous_classroom',
+                model: config.dig('models', 'learner'), profile: profile)
+end
+
+tutoring_ids = hetero_profiles.first(n_tut).map do |profile|
+  DB.save_agent(db, run_id: run_id, role: 'learner', condition: '1on1',
+                model: config.dig('models', 'learner'), profile: profile)
+end
+
+no_education_ids = n_no_ed.times.map do
+  DB.save_agent(db, run_id: run_id, role: 'learner', condition: 'no_education',
+                model: config.dig('models', 'problem_solver'))
+end
+
+all_learners =
+  homo_classroom_ids.map   { |id| { id: id, condition: 'homogeneous_classroom' } } +
+  hetero_classroom_ids.map { |id| { id: id, condition: 'heterogeneous_classroom' } } +
+  tutoring_ids.map         { |id| { id: id, condition: '1on1' } } +
+  no_education_ids.map     { |id| { id: id, condition: 'no_education' } }
+
+# === PHASE 1a: Homogeneous Classroom ===
+$stderr.puts "[main] Phase 1a: Homogeneous classroom (#{n_homo} learners)"
+homo_transcript = Phases::Classroom.run(
+  teacher_id: teacher_id, learner_ids: homo_classroom_ids,
   teacher_prompt: teacher_prompt, learner_prompt: learner_prompt,
-  lesson: lesson, config: config, tracker: tracker
+  lesson: lesson, config: config, tracker: tracker,
+  class_context: Profiles.homogeneous_class_context,
+  condition: 'homogeneous_classroom'
 )
-classroom_learner_ids.each do |learner_id|
+homo_classroom_ids.each do |learner_id|
   DB.save_learning_session(db,
-    run_id: run_id, condition: 'classroom', learner_id: learner_id,
-    teacher_or_tutor_id: teacher_id, transcript: classroom_transcript
+    run_id: run_id, condition: 'homogeneous_classroom', learner_id: learner_id,
+    teacher_or_tutor_id: teacher_id, transcript: homo_transcript
   )
 end
-File.open(File.join(run_dir, 'transcripts.jsonl'), 'a') { |f| f.puts JSON.dump(classroom_transcript) }
+File.open(File.join(run_dir, 'transcripts.jsonl'), 'a') { |f| f.puts JSON.dump(homo_transcript) }
 
-# === PHASE 2: 1on1 Tutoring ===
-$stderr.puts "[main] Phase 2: 1on1 tutoring (#{n_tutoring} sessions)"
-tutoring_learner_ids.each do |learner_id|
+# === PHASE 1b: Heterogeneous Classroom ===
+$stderr.puts "[main] Phase 1b: Heterogeneous classroom (#{n_hetero} learners)"
+hetero_transcript = Phases::Classroom.run(
+  teacher_id: teacher_id, learner_ids: hetero_classroom_ids,
+  teacher_prompt: teacher_prompt, learner_prompt: learner_prompt,
+  lesson: lesson, config: config, tracker: tracker,
+  class_context: Profiles.heterogeneous_class_context(hetero_profiles.first(n_hetero)),
+  condition: 'heterogeneous_classroom'
+)
+hetero_classroom_ids.each do |learner_id|
+  DB.save_learning_session(db,
+    run_id: run_id, condition: 'heterogeneous_classroom', learner_id: learner_id,
+    teacher_or_tutor_id: teacher_id, transcript: hetero_transcript
+  )
+end
+File.open(File.join(run_dir, 'transcripts.jsonl'), 'a') { |f| f.puts JSON.dump(hetero_transcript) }
+
+# === PHASE 2: 1on1 Tutoring (with profiles) ===
+$stderr.puts "[main] Phase 2: 1on1 tutoring (#{n_tut} sessions, profile-adapted)"
+tutoring_ids.each_with_index do |learner_id, i|
+  profile = hetero_profiles[i]
   transcript = Phases::Tutoring.run_session(
     tutor_id: tutor_id, learner_id: learner_id,
     tutor_prompt: tutor_prompt, learner_prompt: learner_prompt,
-    lesson: lesson, config: config, tracker: tracker
+    lesson: lesson, config: config, tracker: tracker,
+    learner_profile: profile
   )
   DB.save_learning_session(db,
     run_id: run_id, condition: '1on1', learner_id: learner_id,
@@ -115,37 +148,36 @@ tutoring_learner_ids.each do |learner_id|
   File.open(File.join(run_dir, 'transcripts.jsonl'), 'a') { |f| f.puts JSON.dump(transcript) }
 end
 
-# === PHASE 2.5: No-Education Baseline Memory ===
-$stderr.puts "[main] Phase 2.5: No-education baseline (#{n_no_education} learners, zero LLM calls)"
-no_education_learner_ids.each do |learner_id|
+# === PHASE 2.5: No-Education Baseline ===
+$stderr.puts "[main] Phase 2.5: No-education baseline (#{n_no_ed} learners, zero LLM calls)"
+no_education_ids.each do |learner_id|
   memory = Phases::NoEducation.generate_memory(learner_id: learner_id)
-  DB.save_learner_memory(db,
-    run_id: run_id, learner_id: learner_id,
-    condition: 'no_education', memory: memory
-  )
+  DB.save_learner_memory(db, run_id: run_id, learner_id: learner_id,
+                         condition: 'no_education', memory: memory)
   File.open(File.join(run_dir, 'memories.jsonl'), 'a') do |f|
     f.puts JSON.dump({ learner_id: learner_id, condition: 'no_education', memory: memory })
   end
 end
 
-# === PHASE 3: Memory Generation (classroom and tutoring only) ===
-$stderr.puts "[main] Phase 3: Memory generation (#{classroom_learner_ids.size + tutoring_learner_ids.size} learners)"
-(classroom_learner_ids.map { |id| { id: id, condition: 'classroom' } } +
- tutoring_learner_ids.map  { |id| { id: id, condition: '1on1' } }).each do |learner|
+# === PHASE 3: Memory Generation (classroom + tutoring only) ===
+educated_learners =
+  homo_classroom_ids.map   { |id| { id: id, condition: 'homogeneous_classroom' } } +
+  hetero_classroom_ids.map { |id| { id: id, condition: 'heterogeneous_classroom' } } +
+  tutoring_ids.map         { |id| { id: id, condition: '1on1' } }
+
+$stderr.puts "[main] Phase 3: Memory generation (#{educated_learners.size} learners)"
+educated_learners.each do |learner|
   transcript_row = db.execute(
     'SELECT transcript_json FROM learning_sessions WHERE run_id = ? AND learner_id = ? ORDER BY rowid DESC LIMIT 1',
     [run_id, learner[:id]]
   ).first
   transcript = JSON.parse(transcript_row['transcript_json'])
-
   memory = Phases::Memory.generate(
     learner_id: learner[:id], transcript: transcript,
     summarizer_prompt: summarizer_prompt, config: config, tracker: tracker
   )
-  DB.save_learner_memory(db,
-    run_id: run_id, learner_id: learner[:id],
-    condition: learner[:condition], memory: memory
-  )
+  DB.save_learner_memory(db, run_id: run_id, learner_id: learner[:id],
+                         condition: learner[:condition], memory: memory)
   File.open(File.join(run_dir, 'memories.jsonl'), 'a') do |f|
     f.puts JSON.dump({ learner_id: learner[:id], condition: learner[:condition], memory: memory })
   end
@@ -153,17 +185,13 @@ end
 
 # === PHASE 4+5: Problem Solving + Auto-Scoring ===
 $stderr.puts "[main] Phase 4+5: Solving + scoring (#{all_learners.size} × #{eval_tasks.size} tasks)"
-
 eval_tasks.each do |task|
-  DB.save_evaluation_task(db,
-    run_id: run_id, task_id: task['id'], task_type: task['task_type'],
-    prompt: task['learner_prompt'], expected_answer: task, rubric: rubric
-  )
+  DB.save_evaluation_task(db, run_id: run_id, task_id: task['id'], task_type: task['task_type'],
+                          prompt: task['learner_prompt'], expected_answer: task, rubric: rubric)
 end
 
 all_learners.each do |learner|
   memory = DB.get_learner_memory(db, run_id: run_id, learner_id: learner[:id])
-
   eval_tasks.each do |task|
     result = Phases::Solver.solve(
       learner_id: learner[:id], memory: memory, task: task,
@@ -179,16 +207,14 @@ all_learners.each do |learner|
                          condition: learner[:condition], task_id: task['id'],
                          response: result['response'], parsed: result['parsed'] })
     end
-
     score = Phases::Evaluator.score(
       attempt_id: attempt_id, learner_response: result['response'],
       parsed_response: result['parsed'], task: task, rubric: rubric,
       evaluator_id: evaluator_id, evaluator_prompt: evaluator_prompt,
       config: config, tracker: tracker
     )
-    DB.save_evaluation(db,
-      run_id: run_id, attempt_id: attempt_id, evaluator_id: evaluator_id, score: score
-    )
+    DB.save_evaluation(db, run_id: run_id, attempt_id: attempt_id,
+                       evaluator_id: evaluator_id, score: score)
     File.open(File.join(run_dir, 'evaluations.jsonl'), 'a') do |f|
       f.puts JSON.dump({ attempt_id: attempt_id, score: score })
     end

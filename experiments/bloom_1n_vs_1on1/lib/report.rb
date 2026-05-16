@@ -80,7 +80,7 @@ module Report
     lines << ""
     lines << "| Condition | Learners | Attempts | Correct% |"
     lines << "|-----------|---------|---------|---------|"
-    %w[no_education classroom 1on1].each do |cond|
+    %w[no_education homogeneous_classroom heterogeneous_classroom 1on1].each do |cond|
       cond_rows = by_condition[cond] || []
       pct = avg_correctness(cond_rows)
       n   = cond_rows.map { |r| r['learner_id'] }.uniq.size
@@ -140,6 +140,49 @@ module Report
       lines << "| Tutoring gain per 1k extra tokens | #{format('%.2f', token_data[:gain_per_1k])}pp |"
       lines << ""
     end
+
+    # Profile-based breakdown
+    lines << "## Score by Learner Profile"
+    lines << ""
+    %w[ability misconception interest].each do |dim|
+      by_dim = score_by_profile_dimension(rows, dim)
+      next if by_dim.empty?
+      lines << "### By #{dim.capitalize}"
+      lines << ""
+      lines << "| #{dim.capitalize} | Correct% |"
+      lines << "|#{'-' * (dim.length + 2)}|---------|"
+      by_dim.sort.each do |val, pct|
+        lines << "| #{val} | #{(pct * 100).round}% |"
+      end
+      lines << ""
+    end
+
+    # Variance by condition
+    variance = score_variance_by_condition(rows)
+    lines << "## Score Variance by Condition (std dev of per-learner correct%)"
+    lines << ""
+    lines << "| Condition | Std Dev |"
+    lines << "|-----------|--------|"
+    variance.sort.each do |cond, sd|
+      lines << "| #{cond} | #{sd} |"
+    end
+    lines << ""
+
+    # Token per correct answer
+    tpca = token_per_correct_answer(rows, token_summary)
+    lines << "**Token cost per correct answer:** #{tpca} tokens"
+    lines << ""
+
+    # Heterogeneity interpretation
+    interpretations = heterogeneity_interpretation(rows, token_summary)
+    lines << "## Heterogeneity Interpretation"
+    lines << ""
+    if interpretations.empty?
+      lines << "No strong heterogeneity signal detected."
+    else
+      interpretations.each { |i| lines << "- **#{i}** ✓" }
+    end
+    lines << ""
 
     # Recommendations
     lines << "## Recommended Next Steps"
@@ -228,5 +271,58 @@ module Report
   def self.avg_total(rows)
     return 0.0 if rows.empty?
     rows.map { |r| r['score_json'] ? JSON.parse(r['score_json'])['total'].to_f : 0.0 }.sum / rows.size
+  end
+
+  def self.score_by_profile_dimension(rows, dimension)
+    grouped = rows.group_by do |r|
+      profile = r['profile_json'] ? JSON.parse(r['profile_json']) : {}
+      profile[dimension.to_s] || 'unknown'
+    end
+    grouped.transform_values { |rs| avg_correctness(rs) }
+  end
+
+  def self.score_variance_by_condition(rows)
+    by_condition = rows.group_by { |r| r['condition'] }
+    by_condition.transform_values do |cond_rows|
+      by_learner = cond_rows.group_by { |r| r['learner_id'] }
+      scores = by_learner.values.map { |ls| avg_correctness(ls) }
+      next 0.0 if scores.size < 2
+      mean     = scores.sum / scores.size
+      variance = scores.sum { |s| (s - mean)**2 } / (scores.size - 1)
+      Math.sqrt(variance).round(3)
+    end
+  end
+
+  def self.token_per_correct_answer(rows, token_summary)
+    total_correct = rows.count { |r| r['score_json'] && JSON.parse(r['score_json'])['answer_correct'] == true }
+    total_tokens  = token_summary.values.sum { |v| v['total_tokens'].to_i }
+    return 0 if total_correct == 0
+    (total_tokens.to_f / total_correct).round(0).to_i
+  end
+
+  def self.heterogeneity_interpretation(rows, token_summary)
+    by_condition = rows.group_by { |r| r['condition'] }
+    tutoring_pct = avg_correctness(by_condition['1on1']                    || [])
+    hetero_pct   = avg_correctness(by_condition['heterogeneous_classroom'] || [])
+    homo_pct     = avg_correctness(by_condition['homogeneous_classroom']   || [])
+
+    results = []
+    results << 'tutoring_advantage_under_heterogeneity' if tutoring_pct > hetero_pct
+    results << 'classroom_advantage_under_homogeneity'   if homo_pct >= tutoring_pct
+    results << 'heterogeneity_penalty'                   if hetero_pct < homo_pct
+
+    low_tutoring = bottom_learner_correctness(by_condition['1on1']                    || [], 'low')
+    low_hetero   = bottom_learner_correctness(by_condition['heterogeneous_classroom'] || [], 'low')
+    results << 'bottom_learner_rescue' if low_tutoring > low_hetero
+
+    results
+  end
+
+  def self.bottom_learner_correctness(cond_rows, target_ability)
+    low_rows = cond_rows.select do |r|
+      profile = r['profile_json'] ? JSON.parse(r['profile_json']) : {}
+      profile['ability'] == target_ability
+    end
+    avg_correctness(low_rows)
   end
 end

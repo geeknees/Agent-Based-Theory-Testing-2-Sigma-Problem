@@ -1,10 +1,10 @@
 experiment:
-  name: "bloom_1n_vs_1on1_v4"
+  name: "bloom_heterogeneity_v5"
   domain: "zarn_tokens"
-  n_classroom: 4
+  n_homogeneous_classroom: 4
+  n_heterogeneous_classroom: 4
   n_tutoring: 4
   n_no_education: 3
-  classroom_questions_per_learner: 1
   tutoring_turns: 4
   eval_tasks_file: "eval_tasks_v4.json"
   max_memory_words: 120
@@ -14,7 +14,7 @@ models:
   teacher: "claude-sonnet-4-6"
   tutor: "claude-sonnet-4-6"
   learner: "claude-sonnet-4-6"
-  # learner_diagnostic: "claude-haiku-4-5-20251001"  # optional: set to weaker model for calibration
+  # learner_diagnostic: "claude-haiku-4-5-20251001"
   memory_summarizer: "claude-sonnet-4-6"
   problem_solver: "claude-sonnet-4-6"
   evaluator: "claude-sonnet-4-6"

@@ -1,26 +1,29 @@
-# ABOUTME: Orchestrates the 1:N classroom education phase for the A-group learners
-# ABOUTME: Teacher lectures; learners ask one question each; teacher answers publicly (no notes step)
+# ABOUTME: Orchestrates 1:N classroom education for any classroom condition
+# ABOUTME: Accepts class_context to make teacher aware of learner composition
 
 require_relative '../llm'
 require_relative '../helpers'
 
 module Phases
   module Classroom
-    def self.run(teacher_id:, learner_ids:, teacher_prompt:, learner_prompt:, lesson:, config:, tracker: nil)
+    def self.run(teacher_id:, learner_ids:, teacher_prompt:, learner_prompt:, lesson:,
+                 config:, tracker: nil, class_context: nil, condition: 'classroom')
       model         = config.dig('models', 'teacher') || 'claude-sonnet-4-6'
       learner_model = config.dig('models', 'learner') || 'claude-sonnet-4-6'
 
       turns = []
 
+      context_suffix = class_context ? "\n\n#{class_context}" : ''
+
       # Step 1: Teacher delivers lecture
       lecture_prompt = Helpers.build_prompt(
         system: teacher_prompt,
-        context: "DOMAIN LESSON:\n#{lesson}",
+        context: "DOMAIN LESSON:\n#{lesson}#{context_suffix}",
         instruction: "Deliver a clear, structured lesson to all learners. Cover all rules with examples. End with: \"Are there any questions?\""
       )
-      lecture = LLM.call(lecture_prompt, model: model, tracker: tracker, phase: 'education_classroom')
+      lecture = LLM.call(lecture_prompt, model: model, tracker: tracker, phase: "education_#{condition}")
       turns << { 'speaker' => 'teacher', 'type' => 'lecture', 'content' => lecture }
-      $stderr.puts "[classroom] Teacher delivered lecture (#{lecture.length} chars)"
+      $stderr.puts "[#{condition}] Teacher delivered lecture (#{lecture.length} chars)"
 
       # Step 2: Each learner asks one question
       questions = learner_ids.map do |learner_id|
@@ -29,9 +32,9 @@ module Phases
           context: "CLASS LECTURE:\n#{lecture}",
           instruction: "You are #{learner_id}. Ask ONE question about something you want to clarify. If you understood everything, write exactly: No questions."
         )
-        question = LLM.call(question_prompt, model: learner_model, tracker: tracker, phase: 'education_classroom')
+        question = LLM.call(question_prompt, model: learner_model, tracker: tracker, phase: "education_#{condition}")
         turns << { 'speaker' => learner_id, 'type' => 'question', 'content' => question }
-        $stderr.puts "[classroom] #{learner_id} asked question"
+        $stderr.puts "[#{condition}] #{learner_id} asked question"
         { learner_id: learner_id, question: question }
       end
 
@@ -42,16 +45,16 @@ module Phases
         questions_text = real_questions.map { |q| "#{q[:learner_id]}: #{q[:question]}" }.join("\n\n")
         answer_prompt = Helpers.build_prompt(
           system: teacher_prompt,
-          context: "DOMAIN LESSON:\n#{lesson}\n\nLECTURE DELIVERED:\n#{lecture}",
+          context: "DOMAIN LESSON:\n#{lesson}#{context_suffix}\n\nLECTURE DELIVERED:\n#{lecture}",
           instruction: "Answer these student questions publicly. Address each question clearly.\n\n#{questions_text}"
         )
-        answers = LLM.call(answer_prompt, model: model, tracker: tracker, phase: 'education_classroom')
+        answers = LLM.call(answer_prompt, model: model, tracker: tracker, phase: "education_#{condition}")
         turns << { 'speaker' => 'teacher', 'type' => 'answers', 'content' => answers }
-        $stderr.puts "[classroom] Teacher answered questions"
+        $stderr.puts "[#{condition}] Teacher answered questions"
       end
 
       {
-        'condition'   => 'classroom',
+        'condition'   => condition,
         'teacher_id'  => teacher_id,
         'learner_ids' => learner_ids,
         'turns'       => turns

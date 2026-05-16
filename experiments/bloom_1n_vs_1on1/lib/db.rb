@@ -160,10 +160,12 @@ module DB
         ta.task_id,
         et.task_type,
         ta.response_text,
-        e.score_json
+        e.score_json,
+        a.profile_json
       FROM task_attempts ta
       JOIN evaluation_tasks et ON et.id = ta.task_id
       LEFT JOIN evaluations e ON e.attempt_id = ta.id
+      LEFT JOIN agents a ON a.id = ta.learner_id
       WHERE ta.run_id = ?
       ORDER BY ta.condition, ta.learner_id, et.task_type
     SQL

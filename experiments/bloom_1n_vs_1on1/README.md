@@ -73,6 +73,32 @@ Exchange 3 (feedback + reflection) is the critical addition. In v3, the tutor id
 
 **n increased:** n_classroom=6, n_tutoring=6, n_no_education=4 for better statistical power.
 
+## v5 Methodology: Learner Heterogeneity
+
+### Core hypothesis
+
+Tutoring advantage should increase as learner heterogeneity increases. v4 assumed homogeneous learners; v5 makes heterogeneity explicit.
+
+### Four conditions
+
+| Condition | Education | Learner profiles |
+|-----------|-----------|-----------------|
+| no_education | None | No profile |
+| homogeneous_classroom | 1:N shared lesson | All medium ability, same misconception (forgets edge cases) |
+| heterogeneous_classroom | 1:N shared lesson | Mixed: high/medium/low ability, different misconceptions |
+| 1on1 tutoring | 1on1 adapted session | Same profiles as heterogeneous_classroom |
+
+Tutoring learners use the **same profiles as heterogeneous_classroom** for direct comparison.
+
+### Heterogeneity interpretation
+
+| Classification | Meaning |
+|---------------|---------|
+| tutoring_advantage_under_heterogeneity | 1on1 > heterogeneous_classroom |
+| classroom_advantage_under_homogeneity | homogeneous_classroom ≥ 1on1 |
+| heterogeneity_penalty | heterogeneous_classroom < homogeneous_classroom |
+| bottom_learner_rescue | low-ability learners do better in tutoring than in heterogeneous_classroom |
+
 ## How to Run
 
 ```bash

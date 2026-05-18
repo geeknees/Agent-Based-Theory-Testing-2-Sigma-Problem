@@ -1,5 +1,5 @@
-# ABOUTME: Main entry point for the Bloom 2 Sigma v5 heterogeneity experiment
-# ABOUTME: Runs 4 conditions with explicit learner profiles; outputs 7 files plus profile-aware report
+# ABOUTME: Main entry point for the Bloom 2 Sigma v6 learner-types experiment
+# ABOUTME: 4 conditions with theory-driven learner types; type constraints applied at memory generation
 
 require 'yaml'
 require 'json'
@@ -14,7 +14,7 @@ require 'llm'
 require 'helpers'
 require 'token_tracker'
 require 'scorer'
-require 'profiles'
+require 'learner_types'
 require 'phases/classroom'
 require 'phases/tutoring'
 require 'phases/memory'
@@ -61,29 +61,29 @@ n_hetero = config.dig('experiment', 'n_heterogeneous_classroom') || 4
 n_tut    = config.dig('experiment', 'n_tutoring')               || 4
 n_no_ed  = config.dig('experiment', 'n_no_education')           || 3
 
-homo_profiles   = Profiles::HOMOGENEOUS.first(n_homo)
-hetero_profiles = Profiles::HETEROGENEOUS.first([n_hetero, n_tut].max)
+homo_type_keys   = LearnerTypes::HOMOGENEOUS_ASSIGNMENT.first(n_homo)
+hetero_type_keys = LearnerTypes::HETEROGENEOUS_ASSIGNMENT.first([n_hetero, n_tut].max)
 
-teacher_id = DB.save_agent(db, run_id: run_id, role: 'classroom_teacher',
-                            model: config.dig('models', 'teacher'))
-tutor_id   = DB.save_agent(db, run_id: run_id, role: 'tutor',
-                            model: config.dig('models', 'tutor'))
+teacher_id   = DB.save_agent(db, run_id: run_id, role: 'classroom_teacher',
+                              model: config.dig('models', 'teacher'))
+tutor_id     = DB.save_agent(db, run_id: run_id, role: 'tutor',
+                              model: config.dig('models', 'tutor'))
 evaluator_id = DB.save_agent(db, run_id: run_id, role: 'evaluator',
                               model: config.dig('models', 'evaluator'))
 
-homo_classroom_ids = homo_profiles.map do |profile|
+homo_classroom_ids = homo_type_keys.map do |type_key|
   DB.save_agent(db, run_id: run_id, role: 'learner', condition: 'homogeneous_classroom',
-                model: config.dig('models', 'learner'), profile: profile)
+                model: config.dig('models', 'learner'), profile: { 'type_key' => type_key.to_s })
 end
 
-hetero_classroom_ids = hetero_profiles.first(n_hetero).map do |profile|
+hetero_classroom_ids = hetero_type_keys.first(n_hetero).map do |type_key|
   DB.save_agent(db, run_id: run_id, role: 'learner', condition: 'heterogeneous_classroom',
-                model: config.dig('models', 'learner'), profile: profile)
+                model: config.dig('models', 'learner'), profile: { 'type_key' => type_key.to_s })
 end
 
-tutoring_ids = hetero_profiles.first(n_tut).map do |profile|
+tutoring_ids = hetero_type_keys.first(n_tut).map do |type_key|
   DB.save_agent(db, run_id: run_id, role: 'learner', condition: '1on1',
-                model: config.dig('models', 'learner'), profile: profile)
+                model: config.dig('models', 'learner'), profile: { 'type_key' => type_key.to_s })
 end
 
 no_education_ids = n_no_ed.times.map do
@@ -97,14 +97,25 @@ all_learners =
   tutoring_ids.map         { |id| { id: id, condition: '1on1' } } +
   no_education_ids.map     { |id| { id: id, condition: 'no_education' } }
 
+homo_type_map   = homo_classroom_ids.zip(homo_type_keys).to_h
+hetero_type_map = hetero_classroom_ids.zip(hetero_type_keys.first(n_hetero)).to_h
+tutor_type_map  = tutoring_ids.zip(hetero_type_keys.first(n_tut)).to_h
+
 # === PHASE 1a: Homogeneous Classroom ===
-$stderr.puts "[main] Phase 1a: Homogeneous classroom (#{n_homo} learners)"
+$stderr.puts "[main] Phase 1a: Homogeneous classroom (#{n_homo} learners, all edge_case_dropper)"
+homo_class_context = <<~CTX
+  CLASS COMPOSITION: #{n_homo} learners, all of the same type (edge_case_dropper).
+  - Tendency: grasp main rules but forget edge cases and boundary conditions
+  - Common misconception: forgets_edge_cases
+  Teach one shared lesson. Use worked examples. Emphasize edge cases explicitly.
+CTX
 homo_transcript = Phases::Classroom.run(
   teacher_id: teacher_id, learner_ids: homo_classroom_ids,
   teacher_prompt: teacher_prompt, learner_prompt: learner_prompt,
   lesson: lesson, config: config, tracker: tracker,
-  class_context: Profiles.homogeneous_class_context,
-  condition: 'homogeneous_classroom'
+  class_context: homo_class_context,
+  condition: 'homogeneous_classroom',
+  learner_type_keys: homo_type_map
 )
 homo_classroom_ids.each do |learner_id|
   DB.save_learning_session(db,
@@ -115,13 +126,22 @@ end
 File.open(File.join(run_dir, 'transcripts.jsonl'), 'a') { |f| f.puts JSON.dump(homo_transcript) }
 
 # === PHASE 1b: Heterogeneous Classroom ===
-$stderr.puts "[main] Phase 1b: Heterogeneous classroom (#{n_hetero} learners)"
+$stderr.puts "[main] Phase 1b: Heterogeneous classroom (#{n_hetero} learners, mixed types)"
+hetero_type_lines = hetero_type_keys.first(n_hetero).each_with_index.map do |t, i|
+  "  Learner #{i + 1}: #{t} — #{LearnerTypes::DESCRIPTIONS[t]}"
+end.join("\n")
+hetero_class_context = <<~CTX
+  CLASS COMPOSITION: #{n_hetero} learners with different learning types.
+  #{hetero_type_lines}
+  Teach ONE shared lesson. You cannot fully personalize to each learner. Public Q&A allowed.
+CTX
 hetero_transcript = Phases::Classroom.run(
   teacher_id: teacher_id, learner_ids: hetero_classroom_ids,
   teacher_prompt: teacher_prompt, learner_prompt: learner_prompt,
   lesson: lesson, config: config, tracker: tracker,
-  class_context: Profiles.heterogeneous_class_context(hetero_profiles.first(n_hetero)),
-  condition: 'heterogeneous_classroom'
+  class_context: hetero_class_context,
+  condition: 'heterogeneous_classroom',
+  learner_type_keys: hetero_type_map
 )
 hetero_classroom_ids.each do |learner_id|
   DB.save_learning_session(db,
@@ -131,15 +151,15 @@ hetero_classroom_ids.each do |learner_id|
 end
 File.open(File.join(run_dir, 'transcripts.jsonl'), 'a') { |f| f.puts JSON.dump(hetero_transcript) }
 
-# === PHASE 2: 1on1 Tutoring (with profiles) ===
-$stderr.puts "[main] Phase 2: 1on1 tutoring (#{n_tut} sessions, profile-adapted)"
+# === PHASE 2: 1on1 Tutoring (type-adapted sessions) ===
+$stderr.puts "[main] Phase 2: 1on1 tutoring (#{n_tut} sessions, type-adapted)"
 tutoring_ids.each_with_index do |learner_id, i|
-  profile = hetero_profiles[i]
+  type_key   = hetero_type_keys[i]
   transcript = Phases::Tutoring.run_session(
     tutor_id: tutor_id, learner_id: learner_id,
     tutor_prompt: tutor_prompt, learner_prompt: learner_prompt,
     lesson: lesson, config: config, tracker: tracker,
-    learner_profile: profile
+    learner_type_key: type_key
   )
   DB.save_learning_session(db,
     run_id: run_id, condition: '1on1', learner_id: learner_id,
@@ -149,7 +169,7 @@ tutoring_ids.each_with_index do |learner_id, i|
 end
 
 # === PHASE 2.5: No-Education Baseline ===
-$stderr.puts "[main] Phase 2.5: No-education baseline (#{n_no_ed} learners, zero LLM calls)"
+$stderr.puts "[main] Phase 2.5: No-education baseline (#{n_no_ed} learners)"
 no_education_ids.each do |learner_id|
   memory = Phases::NoEducation.generate_memory(learner_id: learner_id)
   DB.save_learner_memory(db, run_id: run_id, learner_id: learner_id,
@@ -159,11 +179,11 @@ no_education_ids.each do |learner_id|
   end
 end
 
-# === PHASE 3: Memory Generation (classroom + tutoring only) ===
+# === PHASE 3: Memory Generation (classroom + tutoring) ===
 educated_learners =
-  homo_classroom_ids.map   { |id| { id: id, condition: 'homogeneous_classroom' } } +
-  hetero_classroom_ids.map { |id| { id: id, condition: 'heterogeneous_classroom' } } +
-  tutoring_ids.map         { |id| { id: id, condition: '1on1' } }
+  homo_classroom_ids.map   { |id| { id: id, condition: 'homogeneous_classroom', type_key: homo_type_map[id] } } +
+  hetero_classroom_ids.map { |id| { id: id, condition: 'heterogeneous_classroom', type_key: hetero_type_map[id] } } +
+  tutoring_ids.map         { |id| { id: id, condition: '1on1', type_key: tutor_type_map[id] } }
 
 $stderr.puts "[main] Phase 3: Memory generation (#{educated_learners.size} learners)"
 educated_learners.each do |learner|
@@ -174,12 +194,14 @@ educated_learners.each do |learner|
   transcript = JSON.parse(transcript_row['transcript_json'])
   memory = Phases::Memory.generate(
     learner_id: learner[:id], transcript: transcript,
-    summarizer_prompt: summarizer_prompt, config: config, tracker: tracker
+    summarizer_prompt: summarizer_prompt, config: config, tracker: tracker,
+    learner_type_key: learner[:type_key]
   )
   DB.save_learner_memory(db, run_id: run_id, learner_id: learner[:id],
                          condition: learner[:condition], memory: memory)
   File.open(File.join(run_dir, 'memories.jsonl'), 'a') do |f|
-    f.puts JSON.dump({ learner_id: learner[:id], condition: learner[:condition], memory: memory })
+    f.puts JSON.dump({ learner_id: learner[:id], condition: learner[:condition],
+                       type_key: learner[:type_key], memory: memory })
   end
 end
 

@@ -140,3 +140,91 @@ class TestTokenPerCorrectAnswer < Minitest::Test
     assert_equal 0, result
   end
 end
+
+class TestScoreByLearnerType < Minitest::Test
+  def make_row(type_key, answer_correct)
+    {
+      'condition'    => '1on1',
+      'learner_id'   => SecureRandom.uuid,
+      'task_id'      => 'l1_recall_01',
+      'task_type'    => 'recall',
+      'score_json'   => JSON.dump({ 'answer_correct' => answer_correct }),
+      'profile_json' => JSON.dump({ 'type_key' => type_key })
+    }
+  end
+
+  def test_groups_by_type_key
+    rows = [make_row('rule_extractor', true), make_row('rule_extractor', true),
+            make_row('edge_case_dropper', false)]
+    result = Report.score_by_learner_type(rows)
+    assert_in_delta 1.0, result['rule_extractor'],    0.01
+    assert_in_delta 0.0, result['edge_case_dropper'], 0.01
+  end
+
+  def test_missing_type_key_grouped_as_unknown
+    row = make_row(nil, true)
+    row['profile_json'] = JSON.dump({})
+    result = Report.score_by_learner_type([row])
+    assert result.key?('unknown')
+  end
+end
+
+class TestCorrectionAndMiscMetrics < Minitest::Test
+  def make_memory_entry(corrected, remaining)
+    {
+      'learner_id' => SecureRandom.uuid,
+      'type_key'   => 'edge_case_dropper',
+      'memory'     => {
+        'corrected_misconceptions' => corrected,
+        'remaining_misconceptions' => remaining
+      }
+    }
+  end
+
+  def test_correction_rate_counts_non_empty
+    memories = {
+      '1on1' => [
+        make_memory_entry(['corrected X'], []),
+        make_memory_entry([], [])
+      ]
+    }
+    result = Report.correction_rate_by_condition(memories)
+    assert_in_delta 0.5, result['1on1'], 0.01
+  end
+
+  def test_remaining_misconceptions_avg
+    memories = {
+      '1on1' => [
+        make_memory_entry([], ['still wrong A', 'still wrong B']),
+        make_memory_entry([], [])
+      ]
+    }
+    result = Report.remaining_misconceptions_by_condition(memories)
+    assert_in_delta 1.0, result['1on1'], 0.01
+  end
+end
+
+class TestHighConfidenceWrongAndAbstention < Minitest::Test
+  def make_row(high_conf_wrong:, abstained:)
+    {
+      'condition'  => '1on1',
+      'learner_id' => SecureRandom.uuid,
+      'score_json' => JSON.dump({ 'high_confidence_wrong' => high_conf_wrong,
+                                  'abstained' => abstained,
+                                  'answer_correct' => false })
+    }
+  end
+
+  def test_high_confidence_wrong_rate
+    rows = [make_row(high_conf_wrong: true,  abstained: false),
+            make_row(high_conf_wrong: false, abstained: false),
+            make_row(high_conf_wrong: true,  abstained: false)]
+    assert_in_delta 2.0 / 3.0, Report.high_confidence_wrong_rate(rows), 0.01
+  end
+
+  def test_abstention_rate
+    rows = [make_row(high_conf_wrong: false, abstained: true),
+            make_row(high_conf_wrong: false, abstained: false)]
+    assert_in_delta 0.5, Report.abstention_rate(rows), 0.01
+  end
+end

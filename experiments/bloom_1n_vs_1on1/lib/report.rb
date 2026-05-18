@@ -14,10 +14,12 @@ module Report
 
   def self.generate(db, run_id:, output_dir:, run_config:, token_summary: {})
     FileUtils.mkdir_p(output_dir)
-    rows = DB.all_attempts_with_scores(db, run_id)
+    rows                  = DB.all_attempts_with_scores(db, run_id)
+    memories_by_condition = DB.all_memories_by_condition(db, run_id)
     write_csv(rows, output_dir)
     markdown = build_markdown(rows, run_id: run_id, output_dir: output_dir,
-                              run_config: run_config, token_summary: token_summary)
+                              run_config: run_config, token_summary: token_summary,
+                              memories_by_condition: memories_by_condition)
     File.write(File.join(output_dir, 'report.md'), markdown)
     $stderr.puts "[report] Wrote scores.csv and report.md to #{output_dir}"
   end
@@ -39,7 +41,7 @@ module Report
     end
   end
 
-  def self.build_markdown(rows, run_id:, output_dir:, run_config:, token_summary:)
+  def self.build_markdown(rows, run_id:, output_dir:, run_config:, token_summary:, memories_by_condition: {})
     by_condition  = rows.group_by { |r| r['condition'] }
     ceiling_data  = detect_ceiling(rows, run_config)
     token_data    = build_token_data(token_summary, by_condition)
@@ -184,6 +186,43 @@ module Report
     end
     lines << ""
 
+    # Score by learner type
+    type_scores = score_by_learner_type(rows)
+    unless type_scores.empty?
+      lines << "## Score by Learner Type"
+      lines << ""
+      lines << "| Type | Correct% |"
+      lines << "|------|---------|"
+      type_scores.sort.each { |type, pct| lines << "| #{type} | #{(pct * 100).round}% |" }
+      lines << ""
+    end
+
+    # Misconception correction metrics
+    unless memories_by_condition.empty?
+      corr_rates  = correction_rate_by_condition(memories_by_condition)
+      remain_avgs = remaining_misconceptions_by_condition(memories_by_condition)
+      lines << "## Misconception Correction by Condition"
+      lines << ""
+      lines << "| Condition | Correction Rate | Avg Remaining Misconceptions |"
+      lines << "|-----------|----------------|------------------------------|"
+      corr_rates.sort.each do |cond, rate|
+        remain = remain_avgs[cond] || 0.0
+        lines << "| #{cond} | #{(rate * 100).round}% | #{remain.round(2)} |"
+      end
+      lines << ""
+    end
+
+    # Confidence calibration summary
+    hcw_rate  = high_confidence_wrong_rate(rows)
+    abst_rate = abstention_rate(rows)
+    lines << "## Confidence Calibration"
+    lines << ""
+    lines << "| Metric | Rate |"
+    lines << "|--------|------|"
+    lines << "| High-confidence wrong | #{(hcw_rate * 100).round}% |"
+    lines << "| Abstention | #{(abst_rate * 100).round}% |"
+    lines << ""
+
     # Recommendations
     lines << "## Recommended Next Steps"
     lines << ""
@@ -210,8 +249,9 @@ module Report
   def self.detect_ceiling(rows, run_config)
     threshold = (run_config.dig('experiment', 'ceiling_threshold') || CEILING_THRESHOLD).to_f
     rows.group_by { |r| r['task_type'] }.map do |task_type, type_rows|
+      classroom_conds = %w[classroom homogeneous_classroom heterogeneous_classroom]
       no_ed_pct  = avg_correctness(type_rows.select { |r| r['condition'] == 'no_education' })
-      c_pct      = avg_correctness(type_rows.select { |r| r['condition'] == 'classroom' })
+      c_pct      = avg_correctness(type_rows.select { |r| classroom_conds.include?(r['condition']) })
       t_pct      = avg_correctness(type_rows.select { |r| r['condition'] == '1on1' })
       difficulty = extract_difficulty(type_rows.first['task_id'])
       ceiling    = no_ed_pct >= threshold && c_pct >= threshold && t_pct >= threshold
@@ -242,9 +282,13 @@ module Report
   end
 
   def self.build_token_data(token_summary, by_condition)
-    edu_classroom = (token_summary['education_classroom'] || {})['total_tokens'].to_i
-    edu_tutoring  = (token_summary['education_tutoring']  || {})['total_tokens'].to_i
-    c_pct   = avg_correctness(by_condition['classroom']    || [])
+    edu_classroom = %w[education_classroom education_homogeneous_classroom education_heterogeneous_classroom]
+                      .sum { |k| (token_summary[k] || {})['total_tokens'].to_i }
+    edu_tutoring  = (token_summary['education_tutoring'] || {})['total_tokens'].to_i
+    classroom_rows = (by_condition['classroom'] || []) +
+                     (by_condition['homogeneous_classroom'] || []) +
+                     (by_condition['heterogeneous_classroom'] || [])
+    c_pct   = avg_correctness(classroom_rows)
     t_pct   = avg_correctness(by_condition['1on1']         || [])
     no_pct  = avg_correctness(by_condition['no_education'] || [])
     gain    = t_pct - c_pct
@@ -324,5 +368,41 @@ module Report
       profile['ability'] == target_ability
     end
     avg_correctness(low_rows)
+  end
+
+  def self.score_by_learner_type(rows)
+    grouped = rows.group_by do |r|
+      profile = r['profile_json'] ? JSON.parse(r['profile_json']) : {}
+      profile['type_key'] || 'unknown'
+    end
+    grouped.transform_values { |rs| avg_correctness(rs) }
+  end
+
+  def self.correction_rate_by_condition(memories_by_condition)
+    memories_by_condition.transform_values do |entries|
+      next 0.0 if entries.empty?
+      corrected = entries.count { |e| Array(e.dig('memory', 'corrected_misconceptions')).any? }
+      corrected.to_f / entries.size
+    end
+  end
+
+  def self.remaining_misconceptions_by_condition(memories_by_condition)
+    memories_by_condition.transform_values do |entries|
+      next 0.0 if entries.empty?
+      total = entries.sum { |e| Array(e.dig('memory', 'remaining_misconceptions')).size }
+      total.to_f / entries.size
+    end
+  end
+
+  def self.high_confidence_wrong_rate(rows)
+    return 0.0 if rows.empty?
+    count = rows.count { |r| r['score_json'] && JSON.parse(r['score_json'])['high_confidence_wrong'] == true }
+    count.to_f / rows.size
+  end
+
+  def self.abstention_rate(rows)
+    return 0.0 if rows.empty?
+    count = rows.count { |r| r['score_json'] && JSON.parse(r['score_json'])['abstained'] == true }
+    count.to_f / rows.size
   end
 end

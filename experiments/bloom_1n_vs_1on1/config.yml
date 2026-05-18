@@ -1,5 +1,5 @@
 experiment:
-  name: "bloom_heterogeneity_v5"
+  name: "bloom_learner_types_v6"
   domain: "zarn_tokens"
   n_homogeneous_classroom: 4
   n_heterogeneous_classroom: 4

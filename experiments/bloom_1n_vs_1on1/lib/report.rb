@@ -95,10 +95,11 @@ module Report
     lines << ""
     lines << "| Task Type | Difficulty | No-Ed Correct% | Classroom Correct% | Tutoring Correct% |"
     lines << "|-----------|-----------|----------------|-------------------|-------------------|"
+    classroom_conds = %w[classroom homogeneous_classroom heterogeneous_classroom]
     rows.group_by { |r| r['task_type'] }.sort.each do |task_type, type_rows|
       diff   = extract_difficulty(type_rows.first['task_id'])
       no_pct = avg_correctness(type_rows.select { |r| r['condition'] == 'no_education' })
-      c_pct  = avg_correctness(type_rows.select { |r| r['condition'] == 'classroom' })
+      c_pct  = avg_correctness(type_rows.select { |r| classroom_conds.include?(r['condition']) })
       t_pct  = avg_correctness(type_rows.select { |r| r['condition'] == '1on1' })
       lines << "| #{task_type} | #{diff} | #{(no_pct * 100).round}% | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
     end
@@ -114,7 +115,7 @@ module Report
       next if level_rows.empty?
       types  = level_rows.map { |r| r['task_type'] }.uniq.join(', ')
       no_pct = avg_correctness(level_rows.select { |r| r['condition'] == 'no_education' })
-      c_pct  = avg_correctness(level_rows.select { |r| r['condition'] == 'classroom' })
+      c_pct  = avg_correctness(level_rows.select { |r| classroom_conds.include?(r['condition']) })
       t_pct  = avg_correctness(level_rows.select { |r| r['condition'] == '1on1' })
       lines << "| #{level} | #{types} | #{(no_pct * 100).round}% | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
     end

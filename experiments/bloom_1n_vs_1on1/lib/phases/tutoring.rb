@@ -1,26 +1,27 @@
-# ABOUTME: Orchestrates individual 1on1 tutoring sessions for each B-group learner
-# ABOUTME: Accepts learner_profile to adapt tutor and learner prompts to individual characteristics
+# ABOUTME: Orchestrates individual 1on1 tutoring sessions with diagnostic-correct-retest loop
+# ABOUTME: Exchange 3 diagnoses and corrects the learner's misconception; exchange 4 retests it
 
 require_relative '../llm'
 require_relative '../helpers'
+require_relative '../learner_types'
 
 module Phases
   module Tutoring
     def self.run_session(tutor_id:, learner_id:, tutor_prompt:, learner_prompt:, lesson:,
-                         config:, tracker: nil, learner_profile: nil)
+                         config:, tracker: nil, learner_type_key: nil)
       tutor_model   = config.dig('models', 'tutor')   || 'claude-sonnet-4-6'
       learner_model = config.dig('models', 'learner') || 'claude-sonnet-4-6'
 
-      profile_context = learner_profile ? "\n\n#{Profiles.to_tutor_context(learner_profile)}" : ''
-      learner_context = learner_profile ? "\n\n#{Profiles.to_learner_context(learner_profile)}" : ''
+      type_context    = learner_type_key ? "\n\n#{LearnerTypes.to_prompt_context(learner_type_key)}" : ''
+      learner_context = learner_type_key ? "\n\nYOUR LEARNER TYPE: #{learner_type_key} — respond authentically." : ''
 
       turns = []
 
       # Exchange 1, Turn 1: Tutor opens session
       opener_prompt = Helpers.build_prompt(
         system: tutor_prompt,
-        context: "DOMAIN LESSON MATERIAL:\n#{lesson}#{profile_context}",
-        instruction: "Begin a tutoring session with #{learner_id}. Teach the most important concept with a concrete example adapted to the learner's profile. Be concise — under 150 words."
+        context: "DOMAIN LESSON MATERIAL:\n#{lesson}#{type_context}",
+        instruction: "Begin a tutoring session with #{learner_id}. Teach the most important concept with a concrete example adapted to the learner's type. Be concise — under 150 words."
       )
       opener = LLM.call(opener_prompt, model: tutor_model, tracker: tracker, phase: 'education_tutoring')
       turns << { 'speaker' => 'tutor', 'type' => 'opener', 'content' => opener }
@@ -36,18 +37,18 @@ module Phases
       turns << { 'speaker' => 'learner', 'type' => 'response', 'content' => response }
       $stderr.puts "[tutoring:#{learner_id}] Learner responded"
 
-      # Exchange 2, Turn 3: Tutor asks first diagnostic question
+      # Exchange 2, Turn 3: Tutor asks diagnostic question targeting known misconception
       history = Helpers.format_turns_for_prompt(turns)
       diag1_prompt = Helpers.build_prompt(
         system: tutor_prompt,
-        context: "DOMAIN LESSON:\n#{lesson}#{profile_context}\n\nSESSION SO FAR:\n#{history}",
-        instruction: "Ask ONE diagnostic question requiring the learner to apply a rule. Target the learner's known misconception if any. Under 60 words. Do not give the answer."
+        context: "DOMAIN LESSON:\n#{lesson}#{type_context}\n\nSESSION SO FAR:\n#{history}",
+        instruction: "Ask ONE diagnostic question that will reveal whether the learner has the misconception listed in their type profile. Under 60 words. Do not give the answer."
       )
       diag1 = LLM.call(diag1_prompt, model: tutor_model, tracker: tracker, phase: 'education_tutoring')
       turns << { 'speaker' => 'tutor', 'type' => 'diagnostic_q1', 'content' => diag1 }
       $stderr.puts "[tutoring:#{learner_id}] Tutor asked diagnostic Q1"
 
-      # Exchange 2, Turn 4: Learner answers Q1
+      # Exchange 2, Turn 4: Learner answers Q1 (may reveal misconception)
       history = Helpers.format_turns_for_prompt(turns)
       answer1_prompt = Helpers.build_prompt(
         system: learner_prompt,
@@ -58,49 +59,49 @@ module Phases
       turns << { 'speaker' => 'learner', 'type' => 'answer1', 'content' => answer1 }
       $stderr.puts "[tutoring:#{learner_id}] Learner answered Q1"
 
-      # Exchange 3, Turn 5: Tutor gives targeted feedback
+      # Exchange 3, Turn 5: Tutor identifies misconception and gives corrective example
       history = Helpers.format_turns_for_prompt(turns)
-      feedback_prompt = Helpers.build_prompt(
+      correct_prompt = Helpers.build_prompt(
         system: tutor_prompt,
-        context: "DOMAIN LESSON:\n#{lesson}#{profile_context}\n\nSESSION SO FAR:\n#{history}",
-        instruction: "Give targeted feedback. If the learner made an error related to their known misconception, correct it explicitly. If correct, confirm and mention one edge case. Under 100 words."
+        context: "DOMAIN LESSON:\n#{lesson}#{type_context}\n\nSESSION SO FAR:\n#{history}",
+        instruction: "Identify the specific error or misconception in the learner's answer. State the correct rule explicitly. Give a SHORT corrective worked example (2-3 steps) that makes the correct rule concrete. Under 120 words."
       )
-      feedback = LLM.call(feedback_prompt, model: tutor_model, tracker: tracker, phase: 'education_tutoring')
-      turns << { 'speaker' => 'tutor', 'type' => 'feedback', 'content' => feedback }
-      $stderr.puts "[tutoring:#{learner_id}] Tutor gave feedback"
+      correction = LLM.call(correct_prompt, model: tutor_model, tracker: tracker, phase: 'education_tutoring')
+      turns << { 'speaker' => 'tutor', 'type' => 'correction', 'content' => correction }
+      $stderr.puts "[tutoring:#{learner_id}] Tutor gave correction"
 
-      # Exchange 3, Turn 6: Learner reflects
+      # Exchange 3, Turn 6: Learner applies the corrective example
       history = Helpers.format_turns_for_prompt(turns)
-      reflect_prompt = Helpers.build_prompt(
+      apply_prompt = Helpers.build_prompt(
         system: learner_prompt,
         context: "SESSION SO FAR:\n#{history}#{learner_context}",
-        instruction: "Acknowledge the tutor's feedback. State what you got wrong (if anything) and what the correct rule is. 1-3 sentences."
+        instruction: "State the corrected rule in your own words. Work through the example the tutor gave you step by step. Express your confidence: low, medium, or high."
       )
-      reflect = LLM.call(reflect_prompt, model: learner_model, tracker: tracker, phase: 'education_tutoring')
-      turns << { 'speaker' => 'learner', 'type' => 'reflection', 'content' => reflect }
-      $stderr.puts "[tutoring:#{learner_id}] Learner reflected"
+      application = LLM.call(apply_prompt, model: learner_model, tracker: tracker, phase: 'education_tutoring')
+      turns << { 'speaker' => 'learner', 'type' => 'correction_application', 'content' => application }
+      $stderr.puts "[tutoring:#{learner_id}] Learner applied correction"
 
-      # Exchange 4, Turn 7: Tutor asks harder second diagnostic
+      # Exchange 4, Turn 7: Tutor asks RETEST question on same misconception
       history = Helpers.format_turns_for_prompt(turns)
-      diag2_prompt = Helpers.build_prompt(
+      retest_q_prompt = Helpers.build_prompt(
         system: tutor_prompt,
-        context: "DOMAIN LESSON:\n#{lesson}#{profile_context}\n\nSESSION SO FAR:\n#{history}",
-        instruction: "Ask a second, harder diagnostic question testing a DIFFERENT rule or rule interaction. Under 80 words. Do not give the answer."
+        context: "DOMAIN LESSON:\n#{lesson}#{type_context}\n\nSESSION SO FAR:\n#{history}",
+        instruction: "Ask a NEW question that retests the SAME misconception you just corrected. It must be a different scenario but test the same rule. Under 80 words. Do not give the answer."
       )
-      diag2 = LLM.call(diag2_prompt, model: tutor_model, tracker: tracker, phase: 'education_tutoring')
-      turns << { 'speaker' => 'tutor', 'type' => 'diagnostic_q2', 'content' => diag2 }
-      $stderr.puts "[tutoring:#{learner_id}] Tutor asked diagnostic Q2"
+      retest_q = LLM.call(retest_q_prompt, model: tutor_model, tracker: tracker, phase: 'education_tutoring')
+      turns << { 'speaker' => 'tutor', 'type' => 'retest_q', 'content' => retest_q }
+      $stderr.puts "[tutoring:#{learner_id}] Tutor asked retest Q"
 
-      # Exchange 4, Turn 8: Learner answers Q2
+      # Exchange 4, Turn 8: Learner answers retest
       history = Helpers.format_turns_for_prompt(turns)
-      answer2_prompt = Helpers.build_prompt(
+      retest_a_prompt = Helpers.build_prompt(
         system: learner_prompt,
         context: "SESSION SO FAR:\n#{history}#{learner_context}",
-        instruction: "Answer the tutor's second question. Apply what you corrected in this session. Show your reasoning."
+        instruction: "Answer the retest question. Apply the corrected rule you just learned. Show your reasoning. Note any remaining uncertainty."
       )
-      answer2 = LLM.call(answer2_prompt, model: learner_model, tracker: tracker, phase: 'education_tutoring')
-      turns << { 'speaker' => 'learner', 'type' => 'answer2', 'content' => answer2 }
-      $stderr.puts "[tutoring:#{learner_id}] Learner answered Q2"
+      retest_a = LLM.call(retest_a_prompt, model: learner_model, tracker: tracker, phase: 'education_tutoring')
+      turns << { 'speaker' => 'learner', 'type' => 'retest_answer', 'content' => retest_a }
+      $stderr.puts "[tutoring:#{learner_id}] Learner answered retest"
 
       {
         'condition'  => '1on1',

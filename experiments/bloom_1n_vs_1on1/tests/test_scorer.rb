@@ -148,3 +148,53 @@ class TestScorerNilInput < Minitest::Test
     assert_equal true,  score['auto_scored']
   end
 end
+
+class TestCalibratedConfidence < Minitest::Test
+  def make_task
+    {
+      'expected_answer'        => '3',
+      'expected_active_tokens' => ['yellow'],
+      'expected_mistakes'      => [],
+      'acceptable_aliases'     => {}
+    }
+  end
+
+  def test_high_confidence_correct_gives_positive_calibration
+    parsed = { 'answer' => '3', 'active_tokens' => ['yellow'],
+               'mistakes_found' => [], 'confidence' => 0.9, 'abstain' => false }
+    score = Scorer.score_attempt(parsed, make_task)
+    assert_equal 2, score['calibrated_confidence']
+    refute score['high_confidence_wrong']
+  end
+
+  def test_high_confidence_wrong_gives_negative_calibration
+    parsed = { 'answer' => '5', 'active_tokens' => ['yellow'],
+               'mistakes_found' => [], 'confidence' => 0.8, 'abstain' => false }
+    score = Scorer.score_attempt(parsed, make_task)
+    assert_equal(-2, score['calibrated_confidence'])
+    assert score['high_confidence_wrong']
+  end
+
+  def test_low_confidence_wrong_gives_zero_calibration
+    parsed = { 'answer' => '5', 'active_tokens' => ['yellow'],
+               'mistakes_found' => [], 'confidence' => 0.4, 'abstain' => false }
+    score = Scorer.score_attempt(parsed, make_task)
+    assert_equal 0, score['calibrated_confidence']
+    refute score['high_confidence_wrong']
+  end
+
+  def test_abstained_response_marked_wrong_with_abstain_flag
+    parsed = { 'answer' => '', 'active_tokens' => [],
+               'mistakes_found' => [], 'confidence' => 0.2, 'abstain' => true }
+    score = Scorer.score_attempt(parsed, make_task)
+    refute score['answer_correct']
+    assert score['abstained']
+    assert_equal 1, score['abstention_quality']
+  end
+
+  def test_missing_confidence_defaults_to_zero
+    parsed = { 'answer' => '3', 'active_tokens' => ['yellow'], 'mistakes_found' => [] }
+    score = Scorer.score_attempt(parsed, make_task)
+    assert_equal 0.0, score['confidence']
+  end
+end

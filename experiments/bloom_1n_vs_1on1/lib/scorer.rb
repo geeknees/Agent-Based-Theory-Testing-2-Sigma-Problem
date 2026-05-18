@@ -1,7 +1,9 @@
 # ABOUTME: Auto-scores eval task attempts using machine-checkable expected values
-# ABOUTME: Matches answer strings, active token lists, and mistake keywords; no LLM calls
+# ABOUTME: Adds calibrated_confidence, high_confidence_wrong, abstained, abstention_quality fields
 
 module Scorer
+  HIGH_CONFIDENCE_THRESHOLD = 0.7
+
   def self.score_attempt(parsed_response, task)
     return nil_score('Could not parse learner response as JSON') unless parsed_response.is_a?(Hash) && !parsed_response.empty?
 
@@ -13,6 +15,8 @@ module Scorer
     given_answer   = parsed_response['answer'].to_s.strip.downcase
     given_tokens   = (parsed_response['active_tokens'] || []).map { |t| t.to_s.downcase.strip }.sort
     given_mistakes = parsed_response['mistakes_found'] || []
+    confidence     = parsed_response['confidence'].to_f
+    abstained      = parsed_response['abstain'] == true
 
     # Check answer: exact match or alias match
     answer_correct = given_answer == expected_answer
@@ -21,6 +25,7 @@ module Scorer
         answer_correct = true if Array(vals).map { |v| v.to_s.downcase }.include?(given_answer)
       end
     end
+    answer_correct = false if abstained
 
     # Check active tokens (order-independent)
     tokens_correct = given_tokens == expected_tokens
@@ -44,6 +49,13 @@ module Scorer
                   else                0
                   end
 
+    high_conf_wrong    = !answer_correct && confidence >= HIGH_CONFIDENCE_THRESHOLD
+    calibrated_conf    = if answer_correct && confidence >= HIGH_CONFIDENCE_THRESHOLD then  2
+                         elsif !answer_correct && confidence >= HIGH_CONFIDENCE_THRESHOLD then -2
+                         else 0
+                         end
+    abstention_quality = abstained ? 1 : 0
+
     {
       'answer_correct'        => answer_correct,
       'active_tokens_correct' => tokens_correct,
@@ -55,7 +67,12 @@ module Scorer
       'autonomy'              => 0,
       'total'                 => correctness + rule_app + error_check,
       'auto_scored'           => true,
-      'comments'              => build_comment(answer_correct, tokens_correct, mistakes_ratio)
+      'comments'              => build_comment(answer_correct, tokens_correct, mistakes_ratio),
+      'confidence'            => confidence,
+      'abstained'             => abstained,
+      'high_confidence_wrong' => high_conf_wrong,
+      'calibrated_confidence' => calibrated_conf,
+      'abstention_quality'    => abstention_quality
     }
   end
 
@@ -65,7 +82,10 @@ module Scorer
       'mistakes_found_ratio' => 0.0, 'correctness' => 0,
       'reasoning_quality' => 0, 'rule_application' => 0,
       'error_checking' => 0, 'autonomy' => 0, 'total' => 0,
-      'auto_scored' => true, 'comments' => "Auto: #{reason}"
+      'auto_scored' => true, 'comments' => "Auto: #{reason}",
+      'confidence' => 0.0, 'abstained' => false,
+      'high_confidence_wrong' => false, 'calibrated_confidence' => 0,
+      'abstention_quality' => 0
     }
   end
 

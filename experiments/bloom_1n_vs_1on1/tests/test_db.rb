@@ -70,3 +70,41 @@ class TestDB < Minitest::Test
     assert_equal 18, score['total']
   end
 end
+
+class TestAllMemoriesByCondition < Minitest::Test
+  def setup
+    @db     = DB.setup(':memory:')
+    @run_id = 'run-mem-test'
+    DB.save_run(@db, @run_id, 'test_run', {})
+  end
+
+  def test_returns_memories_grouped_by_condition
+    agent_a = DB.save_agent(@db, run_id: @run_id, role: 'learner',
+                            condition: 'homogeneous_classroom', model: 'test',
+                            profile: { 'type_key' => 'edge_case_dropper' })
+    agent_b = DB.save_agent(@db, run_id: @run_id, role: 'learner',
+                            condition: '1on1', model: 'test',
+                            profile: { 'type_key' => 'rule_extractor' })
+
+    DB.save_learner_memory(@db, run_id: @run_id, learner_id: agent_a,
+                           condition: 'homogeneous_classroom',
+                           memory: { 'rules' => ['rule A'], 'edge_cases' => [] })
+    DB.save_learner_memory(@db, run_id: @run_id, learner_id: agent_b,
+                           condition: '1on1',
+                           memory: { 'rules' => ['rule B'], 'edge_cases' => ['edge1'] })
+
+    result = DB.all_memories_by_condition(@db, @run_id)
+
+    assert result.key?('homogeneous_classroom')
+    assert result.key?('1on1')
+    assert_equal 1, result['homogeneous_classroom'].size
+    assert_equal ['rule A'], result['homogeneous_classroom'].first['memory']['rules']
+    assert_equal 1, result['1on1'].size
+    assert_equal 'rule_extractor', result['1on1'].first['type_key']
+  end
+
+  def test_returns_empty_hash_when_no_memories
+    result = DB.all_memories_by_condition(@db, 'nonexistent-run')
+    assert_equal({}, result)
+  end
+end

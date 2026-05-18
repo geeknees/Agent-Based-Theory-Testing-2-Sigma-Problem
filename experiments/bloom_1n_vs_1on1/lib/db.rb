@@ -151,6 +151,28 @@ module DB
     row ? JSON.parse(row['memory_json']) : nil
   end
 
+  def self.all_memories_by_condition(db, run_id)
+    rows = db.execute(<<~SQL, [run_id])
+      SELECT lm.learner_id, lm.condition, lm.memory_json, a.profile_json
+      FROM learner_memories lm
+      LEFT JOIN agents a ON a.id = lm.learner_id
+      WHERE lm.run_id = ?
+      ORDER BY lm.condition, lm.learner_id
+    SQL
+
+    rows.group_by { |r| r['condition'] }.transform_values do |cond_rows|
+      cond_rows.map do |r|
+        profile  = r['profile_json'] ? JSON.parse(r['profile_json']) : {}
+        type_key = profile['type_key']
+        {
+          'learner_id' => r['learner_id'],
+          'memory'     => JSON.parse(r['memory_json']),
+          'type_key'   => type_key
+        }
+      end
+    end
+  end
+
   def self.all_attempts_with_scores(db, run_id)
     db.execute(<<~SQL, [run_id])
       SELECT

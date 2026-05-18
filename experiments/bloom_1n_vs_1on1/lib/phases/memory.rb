@@ -1,17 +1,31 @@
 # ABOUTME: Generates compact structured learning memory from each learner's session transcript
-# ABOUTME: Enforces 120-word limit; new 4-field schema: rules, mistakes, strategy, edge_cases
+# ABOUTME: 7-field schema; applies LearnerTypes constraints post-LLM to enforce cognitive differences
 
 require_relative '../llm'
 require_relative '../helpers'
+require_relative '../learner_types'
 
 module Phases
   module Memory
     MAX_WORDS = 120
-    DEFAULT_MEMORY = { 'rules' => [], 'mistakes' => [], 'strategy' => [], 'edge_cases' => [] }.freeze
+    DEFAULT_MEMORY = {
+      'rules'                    => [],
+      'examples'                 => [],
+      'edge_cases'               => [],
+      'strategy'                 => [],
+      'corrected_misconceptions' => [],
+      'remaining_misconceptions' => [],
+      'uncertain_rules'          => []
+    }.freeze
 
-    def self.generate(learner_id:, transcript:, summarizer_prompt:, config:, tracker: nil)
+    def self.generate(learner_id:, transcript:, summarizer_prompt:, config:, tracker: nil, learner_type_key: nil)
       model     = config.dig('models', 'memory_summarizer') || 'claude-sonnet-4-6'
       max_words = config.dig('experiment', 'max_memory_words') || MAX_WORDS
+
+      if learner_type_key
+        type_def  = LearnerTypes.fetch(learner_type_key)
+        max_words = type_def[:memory_budget_words]
+      end
 
       transcript_text = Helpers.format_turns_for_prompt(transcript['turns'])
 
@@ -21,9 +35,7 @@ module Phases
         instruction: "Generate a compact learning memory JSON for #{learner_id}. Return ONLY valid JSON. No prose."
       )
 
-      raw = LLM.call(prompt, model: model, tracker: tracker, phase: 'memory')
-      $stderr.puts "[memory:#{learner_id}] LLM returned raw memory (#{raw.length} chars)"
-
+      raw    = LLM.call(prompt, model: model, tracker: tracker, phase: 'memory')
       memory = Helpers.extract_json(raw)
 
       if memory.nil?
@@ -31,27 +43,19 @@ module Phases
         return DEFAULT_MEMORY.transform_values(&:dup)
       end
 
-      memory = enforce_word_limit(memory, max_words)
-      $stderr.puts "[memory:#{learner_id}] Memory generated (#{word_count(memory)} words, #{memory.values.flatten.size} items)"
-      memory
-    end
+      # Fill any missing keys so downstream code can always rely on all 7 fields
+      DEFAULT_MEMORY.each_key { |k| memory[k] ||= [] }
 
-    def self.enforce_word_limit(memory, max_words)
-      return memory if word_count(memory) <= max_words
-
-      result = memory.transform_values { |arr| arr.is_a?(Array) ? arr.dup : arr }
-      while word_count(result) > max_words
-        longest_key = result.select { |_, v| v.is_a?(Array) && v.size > 0 }
-                            .max_by { |_, v| v.join(' ').split.size }
-                            &.first
-        break unless longest_key
-        result[longest_key] = result[longest_key][0..-2]
+      # Apply learner-type constraints: drop edge cases, shuffle rules, trim to budget
+      if learner_type_key
+        memory = LearnerTypes.apply_constraints(memory, learner_type_key)
+        $stderr.puts "[memory:#{learner_id}] Applied #{learner_type_key} constraints (#{LearnerTypes.word_count(memory)} words)"
+      else
+        memory = LearnerTypes.trim_to_budget(memory, max_words)
+        $stderr.puts "[memory:#{learner_id}] Memory generated (#{LearnerTypes.word_count(memory)} words)"
       end
-      result
-    end
 
-    def self.word_count(memory)
-      memory.values.flatten.join(' ').split.size
+      memory
     end
   end
 end

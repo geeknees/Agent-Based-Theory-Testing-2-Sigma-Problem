@@ -1,13 +1,15 @@
 # ABOUTME: Orchestrates 1:N classroom education for any classroom condition
-# ABOUTME: Accepts class_context to make teacher aware of learner composition
+# ABOUTME: Gates question-asking on learner type's question_asking_probability when type keys provided
 
 require_relative '../llm'
 require_relative '../helpers'
+require_relative '../learner_types'
 
 module Phases
   module Classroom
     def self.run(teacher_id:, learner_ids:, teacher_prompt:, learner_prompt:, lesson:,
-                 config:, tracker: nil, class_context: nil, condition: 'classroom')
+                 config:, tracker: nil, class_context: nil, condition: 'classroom',
+                 learner_type_keys: {})
       model         = config.dig('models', 'teacher') || 'claude-sonnet-4-6'
       learner_model = config.dig('models', 'learner') || 'claude-sonnet-4-6'
 
@@ -25,8 +27,17 @@ module Phases
       turns << { 'speaker' => 'teacher', 'type' => 'lecture', 'content' => lecture }
       $stderr.puts "[#{condition}] Teacher delivered lecture (#{lecture.length} chars)"
 
-      # Step 2: Each learner asks one question
+      # Step 2: Each learner asks a question only if their type permits it
       questions = learner_ids.map do |learner_id|
+        type_key = learner_type_keys[learner_id]
+        asking   = type_key ? LearnerTypes.should_ask_question?(type_key) : true
+
+        unless asking
+          turns << { 'speaker' => learner_id, 'type' => 'question', 'content' => 'No questions.' }
+          $stderr.puts "[#{condition}] #{learner_id} (#{type_key}) skipped question"
+          next { learner_id: learner_id, question: 'No questions.' }
+        end
+
         question_prompt = Helpers.build_prompt(
           system: learner_prompt,
           context: "CLASS LECTURE:\n#{lecture}",
@@ -40,7 +51,7 @@ module Phases
 
       real_questions = questions.reject { |q| q[:question].strip.downcase.start_with?('no questions') }
 
-      # Step 3: Teacher answers all questions in one response
+      # Step 3: Teacher answers all real questions in one response
       if real_questions.any?
         questions_text = real_questions.map { |q| "#{q[:learner_id]}: #{q[:question]}" }.join("\n\n")
         answer_prompt = Helpers.build_prompt(

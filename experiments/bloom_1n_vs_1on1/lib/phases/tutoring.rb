@@ -8,7 +8,7 @@ require_relative '../learner_types'
 module Phases
   module Tutoring
     def self.run_session(tutor_id:, learner_id:, tutor_prompt:, learner_prompt:, lesson:,
-                         config:, tracker: nil, learner_type_key: nil)
+                         config:, tracker: nil, learner_type_key: nil, condition: '1on1')
       tutor_model   = config.dig('models', 'tutor')   || 'claude-sonnet-4-6'
       learner_model = config.dig('models', 'learner') || 'claude-sonnet-4-6'
 
@@ -104,7 +104,7 @@ module Phases
       $stderr.puts "[tutoring:#{learner_id}] Learner answered retest"
 
       {
-        'condition'  => '1on1',
+        'condition'  => condition,
         'tutor_id'   => tutor_id,
         'learner_id' => learner_id,
         'turns'      => turns

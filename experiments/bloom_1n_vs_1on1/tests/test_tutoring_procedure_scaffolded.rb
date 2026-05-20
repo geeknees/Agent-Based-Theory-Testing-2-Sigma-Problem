@@ -77,3 +77,34 @@ class TestTutoringProcedureScaffolded < Minitest::Test
     assert_equal 'retest_answer', result['turns'].last['type']
   end
 end
+
+require 'phases/tutoring'
+
+class TestTutoringConditionParam < Minitest::Test
+  def test_config
+    { 'models' => { 'tutor' => 'model', 'learner' => 'model' } }
+  end
+
+  def test_default_condition_is_1on1
+    result = LLM.stub(:call, 'stub') do
+      Phases::Tutoring.run_session(
+        tutor_id: 't1', learner_id: 'l1',
+        tutor_prompt: 'sys', learner_prompt: 'sys',
+        lesson: 'lesson', config: test_config
+      )
+    end
+    assert_equal '1on1', result['condition']
+  end
+
+  def test_custom_condition_name_propagates
+    result = LLM.stub(:call, 'stub') do
+      Phases::Tutoring.run_session(
+        tutor_id: 't1', learner_id: 'l1',
+        tutor_prompt: 'sys', learner_prompt: 'sys',
+        lesson: 'lesson', config: test_config,
+        condition: 'generic_one_on_one_tutoring'
+      )
+    end
+    assert_equal 'generic_one_on_one_tutoring', result['condition']
+  end
+end

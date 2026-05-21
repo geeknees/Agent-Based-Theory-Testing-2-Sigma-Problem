@@ -12,14 +12,15 @@ module Report
   CEILING_THRESHOLD = 0.9
   DIFFICULTY_LEVELS = %w[L1 L2 L3 L4 L5 L6].freeze
 
-  def self.generate(db, run_id:, output_dir:, run_config:, token_summary: {})
+  def self.generate(db, run_id:, output_dir:, run_config:, token_summary: {}, experiment_meta: {})
     FileUtils.mkdir_p(output_dir)
     rows                  = DB.all_attempts_with_scores(db, run_id)
     memories_by_condition = DB.all_memories_by_condition(db, run_id)
     write_csv(rows, output_dir)
     markdown = build_markdown(rows, run_id: run_id, output_dir: output_dir,
                               run_config: run_config, token_summary: token_summary,
-                              memories_by_condition: memories_by_condition)
+                              memories_by_condition: memories_by_condition,
+                              experiment_meta: experiment_meta)
     File.write(File.join(output_dir, 'report.md'), markdown)
     $stderr.puts "[report] Wrote scores.csv and report.md to #{output_dir}"
   end
@@ -41,7 +42,7 @@ module Report
     end
   end
 
-  def self.build_markdown(rows, run_id:, output_dir:, run_config:, token_summary:, memories_by_condition: {})
+  def self.build_markdown(rows, run_id:, output_dir:, run_config:, token_summary:, memories_by_condition: {}, experiment_meta: {})
     by_condition  = rows.group_by { |r| r['condition'] }
     ceiling_data  = detect_ceiling(rows, run_config)
     token_data    = build_token_data(token_summary, by_condition)
@@ -82,8 +83,8 @@ module Report
     lines << ""
     lines << "| Condition | Learners | Attempts | Correct% |"
     lines << "|-----------|---------|---------|---------|"
-    %w[no_education homogeneous_classroom heterogeneous_classroom 1on1].each do |cond|
-      cond_rows = by_condition[cond] || []
+    by_condition.keys.sort.each do |cond|
+      cond_rows = by_condition[cond]
       pct = avg_correctness(cond_rows)
       n   = cond_rows.map { |r| r['learner_id'] }.uniq.size
       lines << "| #{cond} | #{n} | #{cond_rows.size} | #{(pct * 100).round}% |"
@@ -223,6 +224,36 @@ module Report
     lines << "| High-confidence wrong | #{(hcw_rate * 100).round}% |"
     lines << "| Abstention | #{(abst_rate * 100).round}% |"
     lines << ""
+
+    # Exp A: passive_listener rescue effect
+    if experiment_meta[:experiment] == 'A'
+      rescue_table = passive_listener_rescue_effect(rows)
+      unless rescue_table.empty?
+        lines << "## Passive Listener Rescue Effect"
+        lines << ""
+        lines << rescue_table
+        lines << ""
+      end
+    end
+
+    # Exp B: order_confused scaffold effect + procedure order errors
+    if experiment_meta[:experiment] == 'B'
+      scaffold_table = order_confused_scaffold_effect(rows)
+      unless scaffold_table.empty?
+        lines << "## Order Confused Scaffold Effect"
+        lines << ""
+        lines << scaffold_table
+        lines << ""
+      end
+
+      proc_error_rate = procedure_order_error_rate(rows)
+      lines << "## Procedure Order Errors"
+      lines << ""
+      lines << "| Metric | Rate |"
+      lines << "|--------|------|"
+      lines << "| Responses with modifier-before-activation error | #{(proc_error_rate * 100).round}% |"
+      lines << ""
+    end
 
     # Recommendations
     lines << "## Recommended Next Steps"
@@ -405,5 +436,66 @@ module Report
     return 0.0 if rows.empty?
     count = rows.count { |r| r['score_json'] && JSON.parse(r['score_json'])['abstained'] == true }
     count.to_f / rows.size
+  end
+
+  def self.passive_listener_rescue_effect(rows)
+    pl_rows = rows.select do |r|
+      profile = r['profile_json'] ? JSON.parse(r['profile_json']) : {}
+      profile['type_key'] == 'passive_listener'
+    end
+    return '' if pl_rows.empty?
+
+    by_cond = pl_rows.group_by { |r| r['condition'] }
+    target_conds = %w[classroom_public_qa classroom_forced_checkin one_on_one_tutoring]
+
+    table = []
+    table << "| Condition | Learners | Correct% |"
+    table << "|-----------|---------|---------|"
+    target_conds.each do |cond|
+      cond_rows = by_cond[cond] || []
+      next if cond_rows.empty?
+      n   = cond_rows.map { |r| r['learner_id'] }.uniq.size
+      pct = avg_correctness(cond_rows)
+      table << "| #{cond} | #{n} | #{(pct * 100).round}% |"
+    end
+    table.join("\n")
+  end
+
+  def self.order_confused_scaffold_effect(rows)
+    oc_rows = rows.select do |r|
+      profile = r['profile_json'] ? JSON.parse(r['profile_json']) : {}
+      profile['type_key'] == 'order_confused'
+    end
+    return '' if oc_rows.empty?
+
+    by_cond = oc_rows.group_by { |r| r['condition'] }
+    target_conds = %w[classroom_public_qa generic_one_on_one_tutoring procedure_scaffolded_one_on_one_tutoring]
+
+    table = []
+    table << "| Condition | Learners | Correct% | Procedure Order Errors% |"
+    table << "|-----------|---------|---------|------------------------|"
+    target_conds.each do |cond|
+      cond_rows = by_cond[cond] || []
+      next if cond_rows.empty?
+      n        = cond_rows.map { |r| r['learner_id'] }.uniq.size
+      pct      = avg_correctness(cond_rows)
+      err_rate = procedure_order_error_rate(cond_rows)
+      table << "| #{cond} | #{n} | #{(pct * 100).round}% | #{(err_rate * 100).round}% |"
+    end
+    table.join("\n")
+  end
+
+  def self.procedure_order_error?(response_text)
+    text = response_text.to_s.downcase
+    mod_pos = [text.index('×'), text.index('modifier'), text.index('multiply')].compact.min
+    act_pos = [text.index('active'), text.index('inactive'), text.index('activation')].compact.min
+    return false unless mod_pos && act_pos
+    mod_pos < act_pos
+  end
+
+  def self.procedure_order_error_rate(rows)
+    return 0.0 if rows.empty?
+    errors = rows.count { |r| procedure_order_error?(r['response_text'].to_s) }
+    errors.to_f / rows.size
   end
 end

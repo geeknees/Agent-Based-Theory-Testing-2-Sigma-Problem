@@ -1,0 +1,24 @@
+experiment:
+  name: "bloom_v7b_order_confused_intervention"
+  domain: "zarn_tokens"
+  n_classroom_public_qa: 4
+  n_generic_one_on_one_tutoring: 4
+  n_procedure_scaffolded_one_on_one_tutoring: 4
+  tutoring_turns: 4
+  eval_tasks_file: "eval_tasks_v4.json"
+  max_memory_words: 100
+  ceiling_threshold: 0.9
+
+models:
+  teacher: "claude-sonnet-4-6"
+  tutor: "claude-sonnet-4-6"
+  learner: "claude-sonnet-4-6"
+  memory_summarizer: "claude-sonnet-4-6"
+  problem_solver: "claude-sonnet-4-6"
+  evaluator: "claude-sonnet-4-6"
+
+paths:
+  prompts: "experiments/bloom_1n_vs_1on1/prompts"
+  domain: "experiments/bloom_1n_vs_1on1/domains/zarn_tokens"
+  output: "experiments/bloom_1n_vs_1on1/data"
+  db: "experiments/bloom_1n_vs_1on1/data/experiment_v7b.db"

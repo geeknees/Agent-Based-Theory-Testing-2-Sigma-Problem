@@ -72,6 +72,18 @@ module DB
       score_json TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS mastery_check_results (
+      id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL,
+      learner_id TEXT NOT NULL,
+      check_id TEXT NOT NULL,
+      check_type TEXT NOT NULL,
+      response_text TEXT NOT NULL,
+      answer_correct INTEGER NOT NULL,
+      corrective_note TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   SQL
 
   def self.setup(db_path)
@@ -141,6 +153,30 @@ module DB
       [id, run_id, attempt_id, evaluator_id, JSON.dump(score)]
     )
     id
+  end
+
+  def self.save_mastery_check(db, run_id:, learner_id:, check_id:, check_type:,
+                               response_text:, answer_correct:, corrective_note:)
+    id = Helpers.generate_id
+    db.execute(
+      'INSERT INTO mastery_check_results (id, run_id, learner_id, check_id, check_type, response_text, answer_correct, corrective_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [id, run_id, learner_id, check_id, check_type, response_text,
+       answer_correct ? 1 : 0, corrective_note]
+    )
+    id
+  end
+
+  def self.get_mastery_checks(db, run_id:, learner_id:)
+    rows = db.execute(
+      'SELECT * FROM mastery_check_results WHERE run_id = ? AND learner_id = ? ORDER BY rowid',
+      [run_id, learner_id]
+    )
+    rows.map { |r| r.merge('answer_correct' => r['answer_correct'] == 1) }
+  end
+
+  def self.get_mastery_check_errors(db, run_id:, learner_id:)
+    get_mastery_checks(db, run_id: run_id, learner_id: learner_id)
+      .select { |r| !r['answer_correct'] }
   end
 
   def self.get_learner_memory(db, run_id:, learner_id:)

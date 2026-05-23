@@ -1,0 +1,119 @@
+[
+  {
+    "id": "l1_recall_01",
+    "difficulty": "L1",
+    "task_type": "recall",
+    "learner_prompt": "Calculate the final score for this Zarn token sequence: [Green, Blue, Yellow]\n\nUse only your memory of the rules. Do not assume rules you were not taught.\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "hidden_rules": "Red=modifier(0pts,doubles next). Blue=active(5pts) only if Green to left. Green=inactive if last. Yellow=always active(7pts). Inactive tokens stay 0 even when doubled.",
+    "expected_answer": "14",
+    "expected_active_tokens": ["Green", "Blue", "Yellow"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"14": ["14 points", "score: 14", "total: 14", "score is 14"]}
+  },
+  {
+    "id": "l2_edge_case_01",
+    "difficulty": "L2",
+    "task_type": "edge_case",
+    "learner_prompt": "Calculate the final score for this Zarn token sequence: [Blue, Green]\n\nUse only your memory of the rules. Do not assume rules you were not taught.\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "hidden_rules": "Red=modifier(0pts,doubles next). Blue=active(5pts) only if Green to left. Green=inactive if last. Yellow=always active(7pts). Inactive tokens stay 0 even when doubled.",
+    "expected_answer": "0",
+    "expected_active_tokens": [],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"0": ["0 points", "score: 0", "total: 0", "score is 0"]}
+  },
+  {
+    "id": "l2_edge_case_02",
+    "difficulty": "L2",
+    "task_type": "edge_case",
+    "learner_prompt": "Calculate the final score for this Zarn token sequence: [Green, Blue, Green]\n\nUse only your memory of the rules. Do not assume rules you were not taught.\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "hidden_rules": "Red=modifier(0pts,doubles next). Blue=active(5pts) only if Green to left. Green=inactive if last. Yellow=always active(7pts). Inactive tokens stay 0 even when doubled.",
+    "expected_answer": "7",
+    "expected_active_tokens": ["Green", "Blue"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"7": ["7 points", "score: 7", "total: 7", "score is 7"]}
+  },
+  {
+    "id": "l3_rule_interaction_01",
+    "difficulty": "L3",
+    "task_type": "rule_interaction",
+    "learner_prompt": "Calculate the final score for this Zarn token sequence: [Green, Red, Blue]\n\nUse only your memory of the rules. Do not assume rules you were not taught.\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "hidden_rules": "Red=modifier(0pts,doubles next). Blue=active(5pts) only if Green to left. Green=inactive if last. Yellow=always active(7pts). Inactive tokens stay 0 even when doubled.",
+    "expected_answer": "12",
+    "expected_active_tokens": ["Green", "Blue"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"12": ["12 points", "score: 12", "score is 12"]}
+  },
+  {
+    "id": "l4_debug_01",
+    "difficulty": "L4",
+    "task_type": "debugging",
+    "learner_prompt": "A learner calculated the score of [Green, Blue, Red, Yellow] as 21. The learner is wrong.\n\nWhat is the correct score? What mistake did the learner make?\n\nRespond in JSON only:\n{\"answer\": \"<correct score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [\"describe each mistake in under 15 words\"], \"reason\": \"<under 40 words>\"}",
+    "hidden_rules": "Red=modifier(0pts,doubles next). Blue=active(5pts) only if Green to left. Green=inactive if last. Yellow=always active(7pts). Inactive tokens stay 0 even when doubled.",
+    "expected_answer": "21",
+    "expected_active_tokens": ["Green", "Blue", "Yellow"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"21": ["21 points", "score: 21", "total: 21", "score is 21"]}
+  },
+  {
+    "id": "l4_debug_02",
+    "difficulty": "L4",
+    "task_type": "debugging",
+    "learner_prompt": "A learner calculated the score of [Red, Green, Blue] as 14. The learner is wrong.\n\nWhat is the correct score? What mistake did the learner make?\n\nRespond in JSON only:\n{\"answer\": \"<correct score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [\"describe each mistake in under 15 words\"], \"reason\": \"<under 40 words>\"}",
+    "hidden_rules": "Red=modifier(0pts,doubles next). Blue=active(5pts) only if Green to left. Green=inactive if last. Yellow=always active(7pts). Inactive tokens stay 0 even when doubled.",
+    "expected_answer": "9",
+    "expected_active_tokens": ["Green", "Blue"],
+    "expected_mistakes": ["Red doubles Green not Blue", "score should be 9"],
+    "acceptable_aliases": {"9": ["9 points", "score: 9", "total: 9", "score is 9"]}
+  },
+  {
+    "id": "l5_debug_03",
+    "difficulty": "L5",
+    "task_type": "debugging",
+    "learner_prompt": "A learner calculated the score of [Green, Red, Blue, Yellow] as 26. The learner is wrong.\n\nWhat is the correct score? What mistake did the learner make?\n\nRespond in JSON only:\n{\"answer\": \"<correct score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [\"describe each mistake in under 15 words\"], \"reason\": \"<under 40 words>\"}",
+    "hidden_rules": "Red=modifier(0pts,doubles next). Blue=active(5pts) only if Green to left. Green=inactive if last. Yellow=always active(7pts). Inactive tokens stay 0 even when doubled.",
+    "expected_answer": "19",
+    "expected_active_tokens": ["Green", "Blue", "Yellow"],
+    "expected_mistakes": ["Red doubles Blue not Yellow", "Yellow score should be 7 not 14"],
+    "acceptable_aliases": {"19": ["19 points", "score: 19", "total: 19", "score is 19"]}
+  },
+  {
+    "id": "l6_induction_02",
+    "difficulty": "L6",
+    "task_type": "short_rule_induction",
+    "learner_prompt": "Based on these three observations, state the rule for Red Zarn:\n- [Red, Yellow] → score 14\n- [Red, Blue, Green] → score 0 (Blue has no Green to left; Green is last)\n- [Green, Red, Yellow] → score 16\n\nWhat does Red Zarn do?\n\nRespond in JSON only:\n{\"answer\": \"<state the rule in under 20 words>\", \"active_tokens\": [], \"mistakes_found\": [], \"reason\": \"<under 30 words>\"}",
+    "hidden_rules": "Red=modifier(0pts,doubles next). Blue=active(5pts) only if Green to left. Green=inactive if last. Yellow=always active(7pts). Inactive tokens stay 0 even when doubled.",
+    "expected_answer": "red doubles the next token and contributes 0 points itself",
+    "expected_active_tokens": [],
+    "expected_mistakes": [],
+    "acceptable_aliases": {
+      "red doubles the next token and contributes 0 points itself": [
+        "red doubles next token scores zero",
+        "red is a modifier that doubles the token to its right",
+        "red doubles the value of the next token and adds 0",
+        "red zarn doubles the next token contributes 0"
+      ]
+    }
+  },
+  {
+    "id": "l7_peer_error_01",
+    "difficulty": "L4",
+    "task_type": "peer_error_detection",
+    "learner_prompt": "A learner calculated the score of [Red, Blue, Yellow] as 17. They explained: 'Red doubles Blue (5→10), then Yellow=7, total=17.'\n\nIs the learner correct? If not, what is the correct score and what mistake did they make?\n\nRespond in JSON only:\n{\"answer\": \"<correct score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [\"describe each mistake in under 15 words\"], \"reason\": \"<under 40 words>\"}",
+    "hidden_rules": "Red=modifier(0pts,doubles next). Blue=active(5pts) only if Green to left. Green=inactive if last. Yellow=always active(7pts). Inactive tokens stay 0 even when doubled.",
+    "expected_answer": "7",
+    "expected_active_tokens": ["Yellow"],
+    "expected_mistakes": ["blue has no green to its left so blue is inactive", "doubled inactive token is still 0"],
+    "acceptable_aliases": {"7": ["7 points", "score: 7", "total: 7", "score is 7"]}
+  },
+  {
+    "id": "l7_explanation_choice_01",
+    "difficulty": "L5",
+    "task_type": "explanation_choice",
+    "learner_prompt": "For the sequence [Red, Green, Blue], three learners give different explanations. Which explanation is correct?\n\nA: Red doubles Green (2→4). Blue is active because Green is to its left (5). Total = 0+4+5 = 9.\nB: Red makes everything score double, so Green=4, Blue=10. Total = 14.\nC: Red=0, Green is not last so active (2), Blue has Green to its left so active (5). Total = 7.\n\nRespond in JSON only:\n{\"answer\": \"<A, B, or C>\", \"active_tokens\": [], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "hidden_rules": "Red=modifier(0pts,doubles next). Blue=active(5pts) only if Green to left. Green=inactive if last. Yellow=always active(7pts). Inactive tokens stay 0 even when doubled.",
+    "expected_answer": "a",
+    "expected_active_tokens": [],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"a": ["a)", "option a", "explanation a", "choice a"]}
+  }
+]

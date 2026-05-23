@@ -138,13 +138,29 @@ procedure_scaffolded は最高スコアが 63%（vs generic の 88%）で、vari
 
 **注目すべき逆転：** generic は 100% の誤解修正率を達成したにもかかわらず、スコアは procedure_scaffolded と大差ない（47% vs 41%）。procedure_scaffolded の修正率は 25% と低い — 手続き教示に exchange を費やした結果、誤概念の明示的修正機会が減少した。
 
-### 3.5 Procedure Order Errors
+### 3.5 タスク種別 Ceiling 分類（修正版 report より）
+
+report.rb のバグ修正後に再生成した report.md より（旧版は全て 0% で `too_hard` と誤分類されていた）：
+
+| Task Type | 難易度 | No-Ed | Classroom | Tutoring | 分類 |
+|-----------|--------|-------|-----------|---------|------|
+| recall | L1 | 0% | 75% | 25% | condition_sensitive |
+| edge_case | L2 | 0% | 75% | 56% | condition_sensitive |
+| rule_interaction | L3 | 0% | 25% | 38% | condition_sensitive |
+| debugging | L4 | 0% | 75% | 46% | condition_sensitive |
+| short_rule_induction | L6 | 0% | 75% | 38% | condition_sensitive |
+
+*注: Classroom = classroom_public_qa。Tutoring = generic + procedure_scaffolded の平均。*
+
+全タスク種別で `condition_sensitive` — 教育の効果は条件によって大きく異なる。classroom が一貫して tutoring を上回る。
+
+### 3.6 Procedure Order Errors
 
 全条件で 0%（検出器が機能しなかった）。
 
 `×` 記号や "modifier"/"multiply" というキーワードを使った heuristic を使用したが、Sonnet 4.6 は計算を言語で記述することが多く（例: "then apply the modifier to the active tokens"）、記号的表現を使わないため検出できない。この指標は今回の実験では無効。
 
-### 3.6 トークンコスト
+### 3.7 トークンコスト
 
 | フェーズ | Tokens |
 |---------|--------|

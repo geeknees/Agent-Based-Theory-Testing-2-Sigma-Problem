@@ -113,7 +113,23 @@ v6 で `passive_listener` 型が hetero_classroom (13%) より 1on1 (38%) で高
 
 1on1 のみが誤解修正を行った（75%）。しかしスコアは forced_checkin とほぼ同等（50% vs 53%）であり、誤解修正がスコア向上に直結しなかった。
 
-### 3.5 トークンコスト
+### 3.5 タスク種別 Ceiling 分類（修正版 report より）
+
+report.rb のバグ修正後に再生成した report.md より（旧版は全て 0% で `too_hard` と誤分類されていた）：
+
+| Task Type | 難易度 | No-Ed | Classroom | Tutoring | 分類 |
+|-----------|--------|-------|-----------|---------|------|
+| recall | L1 | 0% | 38% | 75% | condition_sensitive |
+| edge_case | L2 | 0% | 81% | 88% | education_sensitive |
+| rule_interaction | L3 | 0% | 63% | 0% | education_sensitive |
+| debugging | L4 | 0% | 88% | 33% | condition_sensitive |
+| short_rule_induction | L6 | 0% | 38% | 50% | condition_sensitive |
+
+*注: Classroom = classroom_public_qa + classroom_forced_checkin の平均。Tutoring = one_on_one_tutoring。*
+
+recall（L1）と debugging（L4）で条件による大きな差（`condition_sensitive`）。1on1 が recall では classroom を上回るが debugging では大幅に下回るという逆転が起きている。
+
+### 3.6 トークンコスト
 
 | フェーズ | Tokens |
 |---------|--------|
@@ -192,9 +208,11 @@ v6 の 13% は n=1 の偶然変動と、hetero クラスでの講義が mixed ty
 
 ## 6. 方法論的課題
 
-### 6.1 講義長の非対称性（設計バグ）
+### 6.1 講義長の非対称性（設計バグ → 修正済み）
 
-最重要課題。classroom_forced_checkin の lecture 指示 "Under 200 words" を削除し、public_qa と同等の講義長にすれば公平な比較ができる。現在の結果では「短い講義 + check-in」と「長い講義」の比較になっており、check-in の効果を単独で測定できていない。
+~~最重要課題。classroom_forced_checkin の lecture 指示 "Under 200 words" を削除し、public_qa と同等の講義長にすれば公平な比較ができる。~~
+
+**対応済み（2026-05-23）:** `classroom_forced_checkin.rb` の lecture 指示から `"Under 200 words."` を削除。次回以降のランでは講義長の非対称性は発生しない。現在の Exp A 結果は「短い講義 + check-in」対「長い講義」の比較であり、check-in 効果の純粋な測定ではないという解釈上の制約は残る。
 
 ### 6.2 レート制限中断
 
@@ -208,12 +226,13 @@ v6 の 13% は n=1 の偶然変動と、hetero クラスでの講義が mixed ty
 
 ## 7. 次の実験への提案
 
-| 優先度 | 提案 | 理由 |
+| 優先度 | 提案 | 状態 |
 |--------|------|------|
-| **最高** | **forced_checkin の lecture 指示から "Under 200 words" を削除して再実験** | 現結果の解釈を可能にする最小修正。これがないと forced_checkin の評価が不可能 |
-| 高 | 1on1 の診断ターゲットを変更（誤概念→ルール総合理解） | passive_listener の 1on1 失敗が誤概念ターゲットのミスマッチの可能性 |
-| 中 | n を 8〜10 に増やす | forced_checkin vs 1on1 の 3pp 差に統計的意味を持たせる |
-| 低 | de3fcfe6 の 1on1 セッションのトランスクリプトを確認 | レート制限中断が結果に影響したか確認 |
+| ~~**最高**~~ | ~~**forced_checkin の lecture 指示から "Under 200 words" を削除して再実験**~~ | ✅ 修正済み（2026-05-23） |
+| **高** | **Exp A を再実験（lecture 長を揃えた条件で）** | 未実施。現 Exp A は lecture 長が交絡しており forced_checkin の単独評価が不可能 |
+| 高 | 1on1 の診断ターゲットを変更（誤概念→ルール総合理解） | 未実施。passive_listener の 1on1 失敗が誤概念ターゲットのミスマッチの可能性 |
+| 中 | n を 8〜10 に増やす | 未実施。forced_checkin vs 1on1 の 3pp 差に統計的意味を持たせる |
+| 低 | de3fcfe6 の 1on1 セッションのトランスクリプトを確認 | 未実施。レート制限中断が結果に影響したか確認 |
 
 ---
 

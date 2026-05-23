@@ -18,7 +18,7 @@ module Phases
       lecture_prompt = Helpers.build_prompt(
         system: teacher_prompt,
         context: "DOMAIN LESSON:\n#{lesson}#{context_suffix}",
-        instruction: "Deliver a clear, structured lesson covering all rules with examples. Under 200 words."
+        instruction: "Deliver a clear, structured lesson covering all rules with examples."
       )
       lecture = LLM.call(lecture_prompt, model: model, tracker: tracker, phase: "education_#{condition}")
       turns << { 'speaker' => 'teacher', 'type' => 'lecture', 'content' => lecture }

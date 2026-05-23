@@ -149,6 +149,26 @@ class TestDynamicConditionList < Minitest::Test
     assert_includes md, 'one_on_one_tutoring'
   end
 
+  def test_task_type_percentages_non_zero_for_v7_conditions
+    # Verifies that Score by Task Type table shows non-zero % when rows use v7 condition names.
+    # Regression guard: previously hardcoded %w[classroom ...] caused 0% for all v7 runs.
+    rows = [
+      make_row('classroom_public_qa', true),
+      make_row('classroom_public_qa', true),
+      make_row('one_on_one_tutoring', false),
+      make_row('one_on_one_tutoring', true),
+    ]
+    config = { 'experiment' => { 'domain' => 'test', 'ceiling_threshold' => 0.9 },
+               'models' => { 'teacher' => 'haiku' } }
+    md = Report.build_markdown(rows, run_id: 'r1', output_dir: '/tmp', run_config: config,
+                               token_summary: {}, experiment_meta: { experiment: 'A' })
+    # classroom_public_qa: 2/2 = 100% — must NOT appear as 0%
+    task_type_section = md[/## Score by Task Type.*?(?=\n##)/m]
+    refute_nil task_type_section, "Score by Task Type section missing"
+    refute_includes task_type_section, '| recall | L1 | 0% | 0% | 0% |',
+                    "Classroom % should be non-zero when classroom_public_qa rows are all correct"
+  end
+
   def test_build_markdown_renders_passive_listener_rescue_for_exp_a
     rows = [
       make_row('classroom_public_qa', false),

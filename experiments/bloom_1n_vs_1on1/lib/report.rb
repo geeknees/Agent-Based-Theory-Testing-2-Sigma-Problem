@@ -96,12 +96,14 @@ module Report
     lines << ""
     lines << "| Task Type | Difficulty | No-Ed Correct% | Classroom Correct% | Tutoring Correct% |"
     lines << "|-----------|-----------|----------------|-------------------|-------------------|"
-    classroom_conds = %w[classroom homogeneous_classroom heterogeneous_classroom]
+    all_conds       = rows.map { |r| r['condition'] }.uniq
+    classroom_conds = all_conds.select { |c| c.include?('classroom') }
+    tutoring_conds  = all_conds.select { |c| c.include?('tutoring') || c == '1on1' }
     rows.group_by { |r| r['task_type'] }.sort.each do |task_type, type_rows|
       diff   = extract_difficulty(type_rows.first['task_id'])
       no_pct = avg_correctness(type_rows.select { |r| r['condition'] == 'no_education' })
       c_pct  = avg_correctness(type_rows.select { |r| classroom_conds.include?(r['condition']) })
-      t_pct  = avg_correctness(type_rows.select { |r| r['condition'] == '1on1' })
+      t_pct  = avg_correctness(type_rows.select { |r| tutoring_conds.include?(r['condition']) })
       lines << "| #{task_type} | #{diff} | #{(no_pct * 100).round}% | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
     end
     lines << ""
@@ -117,7 +119,7 @@ module Report
       types  = level_rows.map { |r| r['task_type'] }.uniq.join(', ')
       no_pct = avg_correctness(level_rows.select { |r| r['condition'] == 'no_education' })
       c_pct  = avg_correctness(level_rows.select { |r| classroom_conds.include?(r['condition']) })
-      t_pct  = avg_correctness(level_rows.select { |r| r['condition'] == '1on1' })
+      t_pct  = avg_correctness(level_rows.select { |r| tutoring_conds.include?(r['condition']) })
       lines << "| #{level} | #{types} | #{(no_pct * 100).round}% | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
     end
     lines << ""
@@ -279,12 +281,14 @@ module Report
   # ---- private helpers ----
 
   def self.detect_ceiling(rows, run_config)
-    threshold = (run_config.dig('experiment', 'ceiling_threshold') || CEILING_THRESHOLD).to_f
+    threshold       = (run_config.dig('experiment', 'ceiling_threshold') || CEILING_THRESHOLD).to_f
+    all_conds       = rows.map { |r| r['condition'] }.uniq
+    classroom_conds = all_conds.select { |c| c.include?('classroom') }
+    tutoring_conds  = all_conds.select { |c| c.include?('tutoring') || c == '1on1' }
     rows.group_by { |r| r['task_type'] }.map do |task_type, type_rows|
-      classroom_conds = %w[classroom homogeneous_classroom heterogeneous_classroom]
       no_ed_pct  = avg_correctness(type_rows.select { |r| r['condition'] == 'no_education' })
       c_pct      = avg_correctness(type_rows.select { |r| classroom_conds.include?(r['condition']) })
-      t_pct      = avg_correctness(type_rows.select { |r| r['condition'] == '1on1' })
+      t_pct      = avg_correctness(type_rows.select { |r| tutoring_conds.include?(r['condition']) })
       difficulty = extract_difficulty(type_rows.first['task_id'])
       ceiling    = no_ed_pct >= threshold && c_pct >= threshold && t_pct >= threshold
       {
@@ -314,14 +318,14 @@ module Report
   end
 
   def self.build_token_data(token_summary, by_condition)
-    edu_classroom = %w[education_classroom education_homogeneous_classroom education_heterogeneous_classroom]
-                      .sum { |k| (token_summary[k] || {})['total_tokens'].to_i }
-    edu_tutoring  = (token_summary['education_tutoring'] || {})['total_tokens'].to_i
-    classroom_rows = (by_condition['classroom'] || []) +
-                     (by_condition['homogeneous_classroom'] || []) +
-                     (by_condition['heterogeneous_classroom'] || [])
+    edu_classroom = token_summary.select { |k, _| k.start_with?('education_') && k.include?('classroom') }
+                                 .sum { |_, v| v['total_tokens'].to_i }
+    edu_tutoring  = token_summary.select { |k, _| k.start_with?('education_') && (k.include?('tutoring') || k == 'education_tutoring') }
+                                 .sum { |_, v| v['total_tokens'].to_i }
+    classroom_rows = by_condition.select { |k, _| k.include?('classroom') }.values.flatten
+    tutoring_rows  = by_condition.select { |k, _| k.include?('tutoring') || k == '1on1' }.values.flatten
     c_pct   = avg_correctness(classroom_rows)
-    t_pct   = avg_correctness(by_condition['1on1']         || [])
+    t_pct   = avg_correctness(tutoring_rows)
     no_pct  = avg_correctness(by_condition['no_education'] || [])
     gain    = t_pct - c_pct
     extra   = [edu_tutoring - edu_classroom, 0].max

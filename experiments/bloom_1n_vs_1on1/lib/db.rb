@@ -179,6 +179,17 @@ module DB
       .select { |r| !r['answer_correct'] }
   end
 
+  def self.all_mastery_checks_by_condition(db, run_id)
+    db.execute(<<~SQL, [run_id])
+      SELECT mcr.learner_id, mcr.check_id, mcr.check_type, mcr.answer_correct,
+             a.condition
+      FROM mastery_check_results mcr
+      LEFT JOIN agents a ON a.id = mcr.learner_id
+      WHERE mcr.run_id = ?
+      ORDER BY a.condition, mcr.learner_id
+    SQL
+  end
+
   def self.get_learner_memory(db, run_id:, learner_id:)
     row = db.execute(
       'SELECT memory_json FROM learner_memories WHERE run_id = ? AND learner_id = ? ORDER BY rowid DESC LIMIT 1',

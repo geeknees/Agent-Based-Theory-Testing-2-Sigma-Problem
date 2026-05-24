@@ -16,11 +16,14 @@ module Report
     FileUtils.mkdir_p(output_dir)
     rows                  = DB.all_attempts_with_scores(db, run_id)
     memories_by_condition = DB.all_memories_by_condition(db, run_id)
+    mastery_rows          = experiment_meta[:experiment] == 'v8' ?
+                              DB.all_mastery_checks_by_condition(db, run_id) : []
     write_csv(rows, output_dir)
     markdown = build_markdown(rows, run_id: run_id, output_dir: output_dir,
                               run_config: run_config, token_summary: token_summary,
                               memories_by_condition: memories_by_condition,
-                              experiment_meta: experiment_meta)
+                              experiment_meta: experiment_meta,
+                              mastery_rows: mastery_rows)
     File.write(File.join(output_dir, 'report.md'), markdown)
     $stderr.puts "[report] Wrote scores.csv and report.md to #{output_dir}"
   end
@@ -42,7 +45,7 @@ module Report
     end
   end
 
-  def self.build_markdown(rows, run_id:, output_dir:, run_config:, token_summary:, memories_by_condition: {}, experiment_meta: {})
+  def self.build_markdown(rows, run_id:, output_dir:, run_config:, token_summary:, memories_by_condition: {}, experiment_meta: {}, mastery_rows: [])
     by_condition  = rows.group_by { |r| r['condition'] }
     ceiling_data  = detect_ceiling(rows, run_config)
     token_data    = build_token_data(token_summary, by_condition)
@@ -178,6 +181,12 @@ module Report
     tpca = token_per_correct_answer(rows, token_summary)
     lines << "**Token cost per correct answer:** #{tpca} tokens"
     lines << ""
+
+    # v8: mastery check scores and memory coverage
+    if experiment_meta[:experiment] == 'v8'
+      lines << mastery_check_section(mastery_rows)
+      lines << memory_coverage_section(memories_by_condition)
+    end
 
     # Heterogeneity interpretation
     interpretations = heterogeneity_interpretation(rows, token_summary)
@@ -332,6 +341,56 @@ module Report
     gain_per_1k = extra > 0 ? (gain * 100) / (extra / 1000.0) : 0.0
     { classroom_pct: c_pct, tutoring_pct: t_pct, no_ed_pct: no_pct,
       tutoring_gain: gain, tutoring_extra: extra, gain_per_1k: gain_per_1k }
+  end
+
+  def self.mastery_check_section(mastery_rows)
+    return '' if mastery_rows.nil? || mastery_rows.empty?
+    lines = []
+    lines << "## Mastery Check Score by Check Type"
+    lines << ""
+    lines << "| Check Type | Total | Correct | Pass Rate |"
+    lines << "|------------|-------|---------|-----------|"
+    mastery_rows.group_by { |r| r['check_type'] }.sort.each do |check_type, rows|
+      total   = rows.size
+      correct = rows.count { |r| r['answer_correct'].to_i == 1 }
+      pct     = total > 0 ? (correct.to_f / total * 100).round : 0
+      lines << "| #{check_type} | #{total} | #{correct} | #{pct}% |"
+    end
+    lines << ""
+    lines.join("\n")
+  end
+
+  def self.memory_coverage(memory)
+    rules      = Array(memory['rules'])
+    edge_cases = Array(memory['edge_cases'])
+    strategy   = Array(memory['strategy'])
+    {
+      rule_count:      rules.size,
+      has_edge_cases:  edge_cases.any?,
+      has_procedure:   strategy.any?,
+      rule_words:      rules.join(' ').split.size,
+      edge_case_count: edge_cases.size,
+      strategy_count:  strategy.size
+    }
+  end
+
+  def self.memory_coverage_section(memories_by_condition)
+    return '' if memories_by_condition.nil? || memories_by_condition.empty?
+    lines = []
+    lines << "## Memory Coverage by Condition"
+    lines << ""
+    lines << "| Condition | Avg Rules | Edge Cases (%) | Procedure (%) |"
+    lines << "|-----------|-----------|----------------|---------------|"
+    memories_by_condition.sort_by { |k, _| k }.each do |cond, mem_list|
+      next if mem_list.empty?
+      coverages = mem_list.map { |m| memory_coverage(m['memory']) }
+      avg_rules = (coverages.sum { |c| c[:rule_count] }.to_f / coverages.size).round(1)
+      edge_pct  = (coverages.count { |c| c[:has_edge_cases] }.to_f / coverages.size * 100).round
+      proc_pct  = (coverages.count { |c| c[:has_procedure] }.to_f / coverages.size * 100).round
+      lines << "| #{cond} | #{avg_rules} | #{edge_pct}% | #{proc_pct}% |"
+    end
+    lines << ""
+    lines.join("\n")
   end
 
   def self.extract_difficulty(task_id)

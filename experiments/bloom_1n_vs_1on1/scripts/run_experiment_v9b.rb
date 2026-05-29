@@ -305,7 +305,6 @@ end
 $stderr.puts "[v9b] Phase 5: Generating report"
 
 ownership_rows = DB.all_ownership_metrics_by_condition(db, run_id).values.flatten
-mastery_rows   = DB.all_mastery_checks_by_condition(db, run_id)
 
 Report.generate(db, run_id: run_id, output_dir: run_dir,
                 run_config: config,

@@ -6,6 +6,7 @@ require 'json'
 require 'date'
 require 'fileutils'
 require_relative 'db'
+require_relative 'ownership_metrics'
 
 module Report
   SCORE_DIMENSIONS  = %w[correctness reasoning_quality rule_application error_checking autonomy].freeze
@@ -403,7 +404,6 @@ module Report
 
   def self.ownership_section(ownership_rows)
     return '' if ownership_rows.nil? || ownership_rows.empty?
-    require_relative 'ownership_metrics'
     summary = OwnershipMetrics.summary_by_condition(ownership_rows)
     lines = []
     lines << "## Ownership Metrics by Condition"
@@ -419,7 +419,6 @@ module Report
 
   def self.memory_delta_section(ownership_rows)
     return '' if ownership_rows.nil? || ownership_rows.empty?
-    require_relative 'ownership_metrics'
     summary = OwnershipMetrics.summary_by_condition(ownership_rows)
     lines = []
     lines << "## Memory Delta by Condition (knowledge items acquired during discussion)"

@@ -6,7 +6,7 @@ module MemoryDiagnostics
   ITEMS = {
     blue_activation:               /blue.*green.*left|green.*left.*blue|blue.*active.*if.*green|need.*green.*before.*blue/i,
     green_end_position:            /green.*last|green.*end.*inactive|last.*green.*inactive|green.*inactive.*last/i,
-    red_modifier:                  /red.*double|red.*modifier|red.*0|red.*pure.*modifier/i,
+    red_modifier:                  /red.*double|red.*modifier|red.*pure.*modifier|red.*scores.*0|red.*itself.*0/i,
     yellow_always_active:          /yellow.*always|yellow.*7.*any|yellow.*active.*any.*position|always.*active.*yellow/i,
     activation_before_modification: /activation.*before.*modifier|activation.*first.*modifier|check.*active.*before.*double|activation.*status.*before/i,
     final_summing:                 /sum.*active|add.*active|total.*active|sum.*all.*active/i

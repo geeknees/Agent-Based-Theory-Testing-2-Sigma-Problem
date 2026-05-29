@@ -112,7 +112,7 @@ module Phases
       end
 
       # --- Pair-only: shared notes ---
-      if condition == 'pair_discussion_size_2'
+      if condition == 'pair_discussion_size_2' && called_on_ids.size >= 1
         history = Helpers.format_turns_for_prompt(turns)
         notes_prompt = Helpers.build_prompt(
           system: participant_prompt,
@@ -145,6 +145,9 @@ module Phases
     private_class_method def self.init_ownership(learner_ids)
       learner_ids.each_with_object({}) do |lid, h|
         h[lid] = {
+          # misconception_exposed and misconception_corrected are reserved for future use.
+          # They are always false in the current implementation.
+          # A future extension may detect misconceptions from transcript analysis.
           contribution_count:             0,
           attempted_answer:               false,
           received_feedback:              false,

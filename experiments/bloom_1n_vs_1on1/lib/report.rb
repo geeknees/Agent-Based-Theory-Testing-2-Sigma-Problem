@@ -17,7 +17,7 @@ module Report
     FileUtils.mkdir_p(output_dir)
     rows                  = DB.all_attempts_with_scores(db, run_id)
     memories_by_condition = DB.all_memories_by_condition(db, run_id)
-    mastery_rows          = experiment_meta[:experiment] == 'v8' ?
+    mastery_rows          = %w[v8 v9b].include?(experiment_meta[:experiment]) ?
                               DB.all_mastery_checks_by_condition(db, run_id) : []
     write_csv(rows, output_dir)
     markdown = build_markdown(rows, run_id: run_id, output_dir: output_dir,

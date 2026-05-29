@@ -84,6 +84,25 @@ module DB
       corrective_note TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS ownership_metrics (
+      id TEXT PRIMARY KEY,
+      run_id TEXT NOT NULL,
+      learner_id TEXT NOT NULL,
+      condition TEXT NOT NULL,
+      contribution_count INTEGER NOT NULL DEFAULT 0,
+      attempted_answer INTEGER NOT NULL DEFAULT 0,
+      received_feedback INTEGER NOT NULL DEFAULT 0,
+      misconception_exposed INTEGER NOT NULL DEFAULT 0,
+      misconception_corrected INTEGER NOT NULL DEFAULT 0,
+      observed_peer_reasoning_count INTEGER NOT NULL DEFAULT 0,
+      memory_delta_after_discussion INTEGER NOT NULL DEFAULT 0,
+      ownership_score INTEGER NOT NULL DEFAULT 0,
+      discussion_exposure_count INTEGER NOT NULL DEFAULT 0,
+      direct_participation_count INTEGER NOT NULL DEFAULT 0,
+      moderator_feedback_count INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   SQL
 
   def self.setup(db_path)
@@ -238,5 +257,48 @@ module DB
       WHERE ta.run_id = ?
       ORDER BY ta.condition, ta.learner_id, et.task_type
     SQL
+  end
+
+  def self.save_ownership_metrics(db, run_id:, learner_id:, condition:,
+                                  contribution_count:, attempted_answer:,
+                                  received_feedback:, misconception_exposed:,
+                                  misconception_corrected:, observed_peer_reasoning_count:,
+                                  memory_delta_after_discussion:, ownership_score:,
+                                  discussion_exposure_count:, direct_participation_count:,
+                                  moderator_feedback_count:)
+    id = Helpers.generate_id
+    db.execute(
+      'INSERT INTO ownership_metrics (id, run_id, learner_id, condition,
+         contribution_count, attempted_answer, received_feedback,
+         misconception_exposed, misconception_corrected,
+         observed_peer_reasoning_count, memory_delta_after_discussion,
+         ownership_score, discussion_exposure_count, direct_participation_count,
+         moderator_feedback_count) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+      [id, run_id, learner_id, condition,
+       contribution_count,
+       attempted_answer  ? 1 : 0,
+       received_feedback ? 1 : 0,
+       misconception_exposed   ? 1 : 0,
+       misconception_corrected ? 1 : 0,
+       observed_peer_reasoning_count, memory_delta_after_discussion,
+       ownership_score, discussion_exposure_count, direct_participation_count,
+       moderator_feedback_count]
+    )
+    id
+  end
+
+  def self.get_ownership_metrics(db, run_id:, learner_id:)
+    db.execute(
+      'SELECT * FROM ownership_metrics WHERE run_id = ? AND learner_id = ? ORDER BY rowid',
+      [run_id, learner_id]
+    )
+  end
+
+  def self.all_ownership_metrics_by_condition(db, run_id)
+    rows = db.execute(
+      'SELECT * FROM ownership_metrics WHERE run_id = ? ORDER BY condition, learner_id',
+      [run_id]
+    )
+    rows.group_by { |r| r['condition'] }
   end
 end

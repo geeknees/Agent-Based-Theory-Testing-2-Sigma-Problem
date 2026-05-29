@@ -188,6 +188,14 @@ module Report
       lines << memory_coverage_section(memories_by_condition)
     end
 
+    # v9b: ownership metrics and memory delta
+    if experiment_meta[:experiment] == 'v9b'
+      lines << mastery_check_section(mastery_rows)
+      lines << memory_coverage_section(memories_by_condition)
+      lines << ownership_section(experiment_meta[:ownership_rows] || [])
+      lines << memory_delta_section(experiment_meta[:ownership_rows] || [])
+    end
+
     # Heterogeneity interpretation
     interpretations = heterogeneity_interpretation(rows, token_summary)
     lines << "## Heterogeneity Interpretation"
@@ -388,6 +396,38 @@ module Report
       edge_pct  = (coverages.count { |c| c[:has_edge_cases] }.to_f / coverages.size * 100).round
       proc_pct  = (coverages.count { |c| c[:has_procedure] }.to_f / coverages.size * 100).round
       lines << "| #{cond} | #{avg_rules} | #{edge_pct}% | #{proc_pct}% |"
+    end
+    lines << ""
+    lines.join("\n")
+  end
+
+  def self.ownership_section(ownership_rows)
+    return '' if ownership_rows.nil? || ownership_rows.empty?
+    require_relative 'ownership_metrics'
+    summary = OwnershipMetrics.summary_by_condition(ownership_rows)
+    lines = []
+    lines << "## Ownership Metrics by Condition"
+    lines << ""
+    lines << "| Condition | Avg Ownership Score | Avg Contributions | % Attempted | % Received Feedback |"
+    lines << "|-----------|--------------------|--------------------|-------------|---------------------|"
+    summary.sort_by { |k, _| k }.each do |cond, s|
+      lines << "| #{cond} | #{s[:avg_ownership_score].round(2)} | #{s[:avg_contribution_count].round(1)} | #{(s[:pct_attempted_answer] * 100).round}% | #{(s[:pct_received_feedback] * 100).round}% |"
+    end
+    lines << ""
+    lines.join("\n")
+  end
+
+  def self.memory_delta_section(ownership_rows)
+    return '' if ownership_rows.nil? || ownership_rows.empty?
+    require_relative 'ownership_metrics'
+    summary = OwnershipMetrics.summary_by_condition(ownership_rows)
+    lines = []
+    lines << "## Memory Delta by Condition (knowledge items acquired during discussion)"
+    lines << ""
+    lines << "| Condition | Avg Memory Delta (items) |"
+    lines << "|-----------|--------------------------|"
+    summary.sort_by { |k, _| k }.each do |cond, s|
+      lines << "| #{cond} | #{s[:avg_memory_delta].round(2)} |"
     end
     lines << ""
     lines.join("\n")

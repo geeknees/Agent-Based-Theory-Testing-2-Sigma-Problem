@@ -279,7 +279,7 @@ end
 all_learners.each do |learner|
   memory = DB.get_learner_memory(db, run_id: run_id, learner_id: learner[:id])
   eval_tasks.each do |task|
-    response = Phases::Solver.run(
+    result = Phases::Solver.solve(
       learner_id: learner[:id], memory: memory, task: task,
       solver_prompt: solver_prompt, config: config, tracker: tracker
     )
@@ -287,9 +287,11 @@ all_learners.each do |learner|
                                       learner_id: learner[:id],
                                       condition: learner[:condition],
                                       task_id: task['id'],
-                                      response_text: response[:answer])
+                                      response_text: result['response'],
+                                      trace: result['trace'].merge('parsed' => result['parsed']))
     score = Phases::Evaluator.score(
-      response: response[:answer], task: task, rubric: rubric,
+      attempt_id: attempt_id, learner_response: result['response'],
+      parsed_response: result['parsed'], task: task, rubric: rubric,
       evaluator_id: evaluator_id, evaluator_prompt: evaluator_prompt,
       config: config, tracker: tracker
     )
@@ -308,11 +310,11 @@ ownership_rows = DB.all_ownership_metrics_by_condition(db, run_id).values.flatte
 
 Report.generate(db, run_id: run_id, output_dir: run_dir,
                 run_config: config,
-                token_summary: tracker.by_phase,
+                token_summary: tracker.summary,
                 experiment_meta: {
                   experiment: 'v9b',
                   ownership_rows: ownership_rows
                 })
 
 $stderr.puts "[v9b] Run complete: #{run_dir}"
-$stderr.puts "[v9b] Total tokens: #{tracker.total}"
+$stderr.puts "[v9b] Total tokens: #{tracker.grand_total}"

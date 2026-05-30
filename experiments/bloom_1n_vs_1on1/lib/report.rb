@@ -96,37 +96,43 @@ module Report
     lines << ""
 
     # Score by task type
-    lines << "## Score by Task Type × Condition"
-    lines << ""
-    lines << "| Task Type | Difficulty | No-Ed Correct% | Classroom Correct% | Tutoring Correct% |"
-    lines << "|-----------|-----------|----------------|-------------------|-------------------|"
     all_conds       = rows.map { |r| r['condition'] }.uniq
     classroom_conds = all_conds.select { |c| c.include?('classroom') }
     tutoring_conds  = all_conds.select { |c| c.include?('tutoring') || c == '1on1' }
-    rows.group_by { |r| r['task_type'] }.sort.each do |task_type, type_rows|
-      diff   = extract_difficulty(type_rows.first['task_id'])
-      no_pct = avg_correctness(type_rows.select { |r| r['condition'] == 'no_education' })
-      c_pct  = avg_correctness(type_rows.select { |r| classroom_conds.include?(r['condition']) })
-      t_pct  = avg_correctness(type_rows.select { |r| tutoring_conds.include?(r['condition']) })
-      lines << "| #{task_type} | #{diff} | #{(no_pct * 100).round}% | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
-    end
-    lines << ""
 
-    # Score by difficulty level
-    lines << "## Score by Difficulty Level"
-    lines << ""
-    lines << "| Level | Task Types | No-Ed Correct% | Classroom Correct% | Tutoring Correct% |"
-    lines << "|-------|-----------|----------------|-------------------|-------------------|"
-    DIFFICULTY_LEVELS.each do |level|
-      level_rows = rows.select { |r| extract_difficulty(r['task_id']) == level }
-      next if level_rows.empty?
-      types  = level_rows.map { |r| r['task_type'] }.uniq.join(', ')
-      no_pct = avg_correctness(level_rows.select { |r| r['condition'] == 'no_education' })
-      c_pct  = avg_correctness(level_rows.select { |r| classroom_conds.include?(r['condition']) })
-      t_pct  = avg_correctness(level_rows.select { |r| tutoring_conds.include?(r['condition']) })
-      lines << "| #{level} | #{types} | #{(no_pct * 100).round}% | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
+    if experiment_meta[:experiment] == 'v9b'
+      lines << score_by_task_type_v9b(rows, all_conds.sort)
+      lines << score_by_difficulty_v9b(rows, all_conds.sort)
+    else
+      lines << "## Score by Task Type × Condition"
+      lines << ""
+      lines << "| Task Type | Difficulty | No-Ed Correct% | Classroom Correct% | Tutoring Correct% |"
+      lines << "|-----------|-----------|----------------|-------------------|-------------------|"
+      rows.group_by { |r| r['task_type'] }.sort.each do |task_type, type_rows|
+        diff   = extract_difficulty(type_rows.first['task_id'])
+        no_pct = avg_correctness(type_rows.select { |r| r['condition'] == 'no_education' })
+        c_pct  = avg_correctness(type_rows.select { |r| classroom_conds.include?(r['condition']) })
+        t_pct  = avg_correctness(type_rows.select { |r| tutoring_conds.include?(r['condition']) })
+        lines << "| #{task_type} | #{diff} | #{(no_pct * 100).round}% | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
+      end
+      lines << ""
+
+      # Score by difficulty level
+      lines << "## Score by Difficulty Level"
+      lines << ""
+      lines << "| Level | Task Types | No-Ed Correct% | Classroom Correct% | Tutoring Correct% |"
+      lines << "|-------|-----------|----------------|-------------------|-------------------|"
+      DIFFICULTY_LEVELS.each do |level|
+        level_rows = rows.select { |r| extract_difficulty(r['task_id']) == level }
+        next if level_rows.empty?
+        types  = level_rows.map { |r| r['task_type'] }.uniq.join(', ')
+        no_pct = avg_correctness(level_rows.select { |r| r['condition'] == 'no_education' })
+        c_pct  = avg_correctness(level_rows.select { |r| classroom_conds.include?(r['condition']) })
+        t_pct  = avg_correctness(level_rows.select { |r| tutoring_conds.include?(r['condition']) })
+        lines << "| #{level} | #{types} | #{(no_pct * 100).round}% | #{(c_pct * 100).round}% | #{(t_pct * 100).round}% |"
+      end
+      lines << ""
     end
-    lines << ""
 
     # Token usage
     lines << "## Token Usage by Phase (estimated)"
@@ -427,6 +433,42 @@ module Report
     lines << "|-----------|--------------------------|"
     summary.sort_by { |k, _| k }.each do |cond, s|
       lines << "| #{cond} | #{s[:avg_memory_delta].round(2)} |"
+    end
+    lines << ""
+    lines.join("\n")
+  end
+
+  def self.score_by_task_type_v9b(rows, conditions)
+    lines = []
+    lines << "## Score by Task Type × Condition"
+    lines << ""
+    header = "| Task Type | Difficulty | " + conditions.map { |c| "#{c} |" }.join(' ')
+    sep    = "|-----------|-----------|" + conditions.map { " ---- |" }.join
+    lines << header
+    lines << sep
+    rows.group_by { |r| r['task_type'] }.sort.each do |task_type, type_rows|
+      diff = extract_difficulty(type_rows.first['task_id'])
+      cols = conditions.map { |c| "#{(avg_correctness(type_rows.select { |r| r['condition'] == c }) * 100).round}% |" }.join(' ')
+      lines << "| #{task_type} | #{diff} | #{cols}"
+    end
+    lines << ""
+    lines.join("\n")
+  end
+
+  def self.score_by_difficulty_v9b(rows, conditions)
+    lines = []
+    lines << "## Score by Difficulty Level × Condition"
+    lines << ""
+    header = "| Level | Task Types | " + conditions.map { |c| "#{c} |" }.join(' ')
+    sep    = "|-------|-----------|" + conditions.map { " ---- |" }.join
+    lines << header
+    lines << sep
+    DIFFICULTY_LEVELS.each do |level|
+      level_rows = rows.select { |r| extract_difficulty(r['task_id']) == level }
+      next if level_rows.empty?
+      types = level_rows.map { |r| r['task_type'] }.uniq.join(', ')
+      cols  = conditions.map { |c| "#{(avg_correctness(level_rows.select { |r| r['condition'] == c }) * 100).round}% |" }.join(' ')
+      lines << "| #{level} | #{types} | #{cols}"
     end
     lines << ""
     lines.join("\n")

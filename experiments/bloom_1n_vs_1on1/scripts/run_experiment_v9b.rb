@@ -272,7 +272,7 @@ $stderr.puts "[v9b] Phase 4: Evaluation (#{all_learners.size} × #{eval_tasks.si
 
 eval_tasks.each do |task|
   DB.save_evaluation_task(db, run_id: run_id, task_id: task['id'],
-                          task_type: task['type'], prompt: task['prompt'],
+                          task_type: task['task_type'], prompt: task['learner_prompt'],
                           expected_answer: task['expected_answer'], rubric: rubric)
 end
 

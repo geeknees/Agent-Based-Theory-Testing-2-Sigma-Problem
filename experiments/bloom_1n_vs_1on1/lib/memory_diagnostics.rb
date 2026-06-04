@@ -22,7 +22,7 @@ module MemoryDiagnostics
     ITEMS.transform_values { |pattern| text.match?(pattern) }
   end
 
-  # Number of detected items (0–6)
+  # Number of detected items (0–10)
   def self.coverage_count(memory)
     detect(memory).count { |_, v| v }
   end

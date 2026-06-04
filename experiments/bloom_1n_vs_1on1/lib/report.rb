@@ -7,6 +7,7 @@ require 'date'
 require 'fileutils'
 require_relative 'db'
 require_relative 'ownership_metrics'
+require_relative 'memory_diagnostics'
 
 module Report
   SCORE_DIMENSIONS  = %w[correctness reasoning_quality rule_application error_checking autonomy].freeze
@@ -17,7 +18,7 @@ module Report
     FileUtils.mkdir_p(output_dir)
     rows                  = DB.all_attempts_with_scores(db, run_id)
     memories_by_condition = DB.all_memories_by_condition(db, run_id)
-    mastery_rows          = %w[v8 v9b].include?(experiment_meta[:experiment]) ?
+    mastery_rows          = %w[v8 v9b v9c].include?(experiment_meta[:experiment]) ?
                               DB.all_mastery_checks_by_condition(db, run_id) : []
     write_csv(rows, output_dir)
     markdown = build_markdown(rows, run_id: run_id, output_dir: output_dir,
@@ -100,7 +101,7 @@ module Report
     classroom_conds = all_conds.select { |c| c.include?('classroom') }
     tutoring_conds  = all_conds.select { |c| c.include?('tutoring') || c == '1on1' }
 
-    if experiment_meta[:experiment] == 'v9b'
+    if %w[v9b v9c].include?(experiment_meta[:experiment])
       lines << score_by_task_type_v9b(rows, all_conds.sort)
       lines << score_by_difficulty_v9b(rows, all_conds.sort)
     else
@@ -201,6 +202,24 @@ module Report
       lines << memory_coverage_section(memories_by_condition)
       lines << ownership_section(experiment_meta[:ownership_rows] || [])
       lines << memory_delta_section(experiment_meta[:ownership_rows] || [])
+    end
+
+    # v9c: readiness + ownership + fine-grained memory delta + interpretation flags
+    if experiment_meta[:experiment] == 'v9c'
+      lines << readiness_summary_section(mastery_rows, experiment_meta[:readiness_pass_rate] || 0.0)
+      lines << mastery_check_section(mastery_rows)
+      lines << memory_coverage_section(memories_by_condition)
+      lines << ownership_section(experiment_meta[:ownership_rows] || [])
+      lines << memory_delta_section(experiment_meta[:ownership_rows] || [])
+      lines << fine_grained_memory_delta_section(
+        experiment_meta[:pre_discussion_snapshots] || [],
+        memories_by_condition
+      )
+      lines << interpretation_flags_section(
+        rows, mastery_rows,
+        experiment_meta[:ownership_rows] || [],
+        experiment_meta[:readiness_pass_rate] || 0.0
+      )
     end
 
     # Heterogeneity interpretation
@@ -641,5 +660,158 @@ module Report
     return 0.0 if rows.empty?
     errors = rows.count { |r| procedure_order_error?(r['response_text'].to_s) }
     errors.to_f / rows.size
+  end
+
+  def self.readiness_summary_section(mastery_rows, readiness_pass_rate)
+    return '' if mastery_rows.nil? || mastery_rows.empty?
+    target_met = readiness_pass_rate >= 0.80
+    lines = []
+    lines << "## Readiness Summary"
+    lines << ""
+    lines << "| Metric | Value |"
+    lines << "|--------|-------|"
+    lines << "| Overall readiness pass rate | #{(readiness_pass_rate * 100).round}% |"
+    lines << "| Target (80%) | #{target_met ? '✓ Readiness target met' : '✗ READINESS TARGET NOT MET'} |"
+    lines << ""
+    lines << "### Pass Rate by Check Type"
+    lines << ""
+    lines << "| Check Type | Total | Correct | Pass Rate |"
+    lines << "|------------|-------|---------|-----------|"
+    mastery_rows.group_by { |r| r['check_type'] }.sort.each do |check_type, type_rows|
+      total   = type_rows.size
+      correct = type_rows.count { |r| r['answer_correct'].to_i == 1 }
+      pct     = total > 0 ? (correct.to_f / total * 100).round : 0
+      lines << "| #{check_type} | #{total} | #{correct} | #{pct}% |"
+    end
+    lines << ""
+    unless target_met
+      lines << "> **WARNING:** Readiness target not met. Do not make strong claims about"
+      lines << "> ownership or class-size effects from this run."
+      lines << ""
+    end
+    lines.join("\n")
+  end
+
+  def self.fine_grained_memory_delta_section(pre_snapshots, memories_by_condition)
+    return '' if pre_snapshots.empty? || memories_by_condition.empty?
+    pre_by_learner = pre_snapshots.each_with_object({}) { |s, h| h[s['learner_id']] = s['diag'] }
+    items = MemoryDiagnostics::ITEMS.keys
+    short = items.map { |k| k.to_s.split('_').first(2).join('_') }
+
+    lines = []
+    lines << "## Fine-Grained Memory Coverage Post-Discussion (10 items)"
+    lines << ""
+    lines << "| Condition | " + short.map { |s| "#{s} |" }.join(' ')
+    lines << "|-----------|" + items.map { " :---: |" }.join
+    memories_by_condition.sort_by { |k, _| k }.each do |cond, mem_list|
+      next if mem_list.empty?
+      post_diags = mem_list.map { |m| MemoryDiagnostics.detect(m['memory']) }
+      cols = items.map do |item|
+        pct = (post_diags.count { |d| d[item] }.to_f / post_diags.size * 100).round
+        "#{pct}% |"
+      end
+      lines << "| #{cond} | #{cols.join(' ')}"
+    end
+    lines << ""
+
+    lines << "## Fine-Grained Memory Delta (pre → post discussion)"
+    lines << ""
+    lines << "| Condition | Avg Acquired | Avg Lost | Avg Stable |"
+    lines << "|-----------|:------------:|:--------:|:----------:|"
+    memories_by_condition.sort_by { |k, _| k }.each do |cond, mem_list|
+      next if mem_list.empty?
+      deltas = mem_list.map do |m|
+        pre_diag  = pre_by_learner[m['learner_id']] || {}
+        post_diag = MemoryDiagnostics.detect(m['memory'])
+        {
+          acquired: items.count { |k| !pre_diag[k] && post_diag[k] },
+          lost:     items.count { |k|  pre_diag[k] && !post_diag[k] },
+          stable:   items.count { |k|  pre_diag[k] &&  post_diag[k] }
+        }
+      end
+      avg_acq    = (deltas.sum { |d| d[:acquired] }.to_f / deltas.size).round(1)
+      avg_lost   = (deltas.sum { |d| d[:lost]     }.to_f / deltas.size).round(1)
+      avg_stable = (deltas.sum { |d| d[:stable]   }.to_f / deltas.size).round(1)
+      lines << "| #{cond} | #{avg_acq} | #{avg_lost} | #{avg_stable} |"
+    end
+    lines << ""
+    lines.join("\n")
+  end
+
+  def self.interpretation_flags_section(rows, mastery_rows, ownership_rows, readiness_pass_rate)
+    by_condition  = rows.group_by { |r| r['condition'] }
+    score_by_cond = by_condition.transform_values { |rs| avg_correctness(rs) }
+    own_summary   = OwnershipMetrics.summary_by_condition(ownership_rows)
+
+    readiness_failed = readiness_pass_rate < 0.80
+
+    # Ownership × score Kendall-tau concordance
+    pairs = own_summary.map { |cond, s| [s[:avg_ownership_score], score_by_cond[cond] || 0] }
+    n_concordant = n_discordant = 0
+    pairs.combination(2).each do |(o1, s1), (o2, s2)|
+      diff = (o1 - o2) * (s1 - s2)
+      n_concordant += 1 if diff > 0
+      n_discordant += 1 if diff < 0
+    end
+    ownership_effect_supported = n_concordant > n_discordant
+
+    # Class-size effect: do larger classes score lower?
+    sizes = {
+      'pair_discussion_size_2'         => 2,
+      'small_class_discussion_size_4'  => 4,
+      'medium_class_discussion_size_8' => 8,
+      'large_class_discussion_size_16' => 16
+    }
+    disc_scores = score_by_cond.select { |k, _| sizes.key?(k) }.sort_by { |k, _| sizes[k] }
+    ordered_scores = disc_scores.map { |_, v| v }
+    class_size_effect_supported = ordered_scores == ordered_scores.sort.reverse && ordered_scores.size >= 2
+
+    # Lecture-only dominance
+    lecture_score = score_by_cond['lecture_only'] || 0.0
+    disc_cond_scores = score_by_cond.reject { |k, _| k == 'lecture_only' }
+    lecture_only_dominant = disc_cond_scores.values.all? { |s| s <= lecture_score } && disc_cond_scores.any?
+
+    # Discussion added value (any discussion > lecture_only + 5pp)
+    discussion_added_value = disc_cond_scores.values.any? { |s| s > lecture_score + 0.05 }
+
+    lines = []
+    lines << "## Interpretation Flags"
+    lines << ""
+    lines << "| Flag | Value |"
+    lines << "|------|-------|"
+    lines << "| readiness_failed | #{readiness_failed} |"
+    lines << "| ownership_effect_supported | #{ownership_effect_supported} |"
+    lines << "| class_size_effect_supported | #{class_size_effect_supported} |"
+    lines << "| lecture_only_dominant | #{lecture_only_dominant} |"
+    lines << "| discussion_added_value | #{discussion_added_value} |"
+    lines << ""
+    lines << "## Interpretation"
+    lines << ""
+    if readiness_failed
+      lines << "**WARNING: readiness_failed = true** — prerequisite readiness target (80%) not met."
+      lines << "Ownership and class-size conclusions from this run are unreliable."
+    else
+      lines << "Readiness target met (#{(readiness_pass_rate * 100).round}%). Interpretations below are valid."
+      lines << ""
+      if ownership_effect_supported
+        lines << "- **Ownership hypothesis supported**: higher ownership score conditions outperformed lower."
+      else
+        lines << "- **Ownership hypothesis NOT supported**: ownership score did not predict final score."
+      end
+      if class_size_effect_supported
+        lines << "- **Class-size effect supported**: scores decreased as class size increased."
+      else
+        lines << "- **Class-size effect NOT supported**: no clear linear relationship between class size and score."
+      end
+      if lecture_only_dominant
+        lines << "- **Lecture-only dominant**: lecture_only outperformed all discussion conditions."
+        lines << "  Discussion may add little beyond prerequisite lecture + readiness correction."
+      end
+      if discussion_added_value
+        lines << "- **Discussion added value**: at least one discussion condition outperformed lecture_only by > 5pp."
+      end
+    end
+    lines << ""
+    lines.join("\n")
   end
 end

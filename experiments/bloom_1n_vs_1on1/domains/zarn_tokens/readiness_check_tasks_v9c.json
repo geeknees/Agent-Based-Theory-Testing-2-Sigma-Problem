@@ -1,0 +1,42 @@
+[
+  {
+    "id": "rc_recall_01",
+    "check_type": "recall",
+    "learner_prompt": "Calculate the final score for this Zarn token sequence: [Yellow, Green]\n\nUse only your memory of the rules. Do not assume rules you were not taught.\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "7",
+    "expected_active_tokens": ["Yellow"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"7": ["7 points", "score: 7", "total: 7", "score is 7"]},
+    "corrective_note": "Recall: [Yellow, Green]. Yellow is always active (7 pts). Green is the last token so it is inactive (0 pts). Score = 7."
+  },
+  {
+    "id": "rc_edge_case_01",
+    "check_type": "edge_case",
+    "learner_prompt": "Calculate the final score for this Zarn token sequence: [Red, Blue]\n\nUse only your memory of the rules. Do not assume rules you were not taught.\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "0",
+    "expected_active_tokens": [],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"0": ["0 points", "score: 0", "total: 0", "score is 0"]},
+    "corrective_note": "Edge case: [Red, Blue]. Blue has no Green to its left, so Blue is inactive (0). Red doubles inactive Blue: doubled(0) = 0. Score = 0."
+  },
+  {
+    "id": "rc_rule_interaction_01",
+    "check_type": "rule_interaction",
+    "learner_prompt": "Calculate the final score for this Zarn token sequence: [Green, Red, Yellow]\n\nUse only your memory of the rules. Do not assume rules you were not taught.\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 40 words>\"}",
+    "expected_answer": "16",
+    "expected_active_tokens": ["Green", "Yellow"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"16": ["16 points", "score: 16", "total: 16", "score is 16"]},
+    "corrective_note": "Rule interaction: [Green, Red, Yellow]. Green = not last, active (2). Red doubles Yellow. Yellow always active: 7 × 2 = 14. Score = 2 + 14 = 16."
+  },
+  {
+    "id": "rc_procedure_order_01",
+    "check_type": "procedure_order",
+    "learner_prompt": "Calculate the final score for this Zarn token sequence: [Red, Blue, Green, Yellow]\n\nIMPORTANT: Show your evaluation procedure step by step.\n\nUse only your memory of the rules. Do not assume rules you were not taught.\n\nRespond in JSON only:\n{\"answer\": \"<score>\", \"active_tokens\": [\"list active token names\"], \"mistakes_found\": [], \"reason\": \"<under 60 words>\"}",
+    "expected_answer": "9",
+    "expected_active_tokens": ["Green", "Yellow"],
+    "expected_mistakes": [],
+    "acceptable_aliases": {"9": ["9 points", "score: 9", "total: 9", "score is 9"]},
+    "corrective_note": "Procedure order: [Red, Blue, Green, Yellow]. First check Blue's activation: no Green to its left, so Blue is INACTIVE (0). Then apply Red: doubles inactive Blue = 0. Green (pos 3) not last = active (2). Yellow always active (7). Score = 0 + 0 + 2 + 7 = 9. Always check activation BEFORE applying modifiers."
+  }
+]

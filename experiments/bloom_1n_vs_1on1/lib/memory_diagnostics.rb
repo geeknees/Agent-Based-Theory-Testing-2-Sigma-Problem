@@ -1,4 +1,4 @@
-# ABOUTME: Detects presence of 6 key knowledge items in a learner memory hash
+# ABOUTME: Detects presence of 10 key knowledge items in a learner memory hash
 # ABOUTME: Pure functions — no LLM calls; used for pre/post-discussion diagnostics
 
 module MemoryDiagnostics
@@ -9,10 +9,14 @@ module MemoryDiagnostics
     red_modifier:                  /red.*double|red.*modifier|red.*pure.*modifier|red.*scores.*0|red.*itself.*0/i,
     yellow_always_active:          /yellow.*always|yellow.*7.*any|yellow.*active.*any.*position|always.*active.*yellow/i,
     activation_before_modification: /activation.*before.*modifier|activation.*first.*modifier|check.*active.*before.*double|activation.*status.*before/i,
-    final_summing:                 /sum.*active|add.*active|total.*active|sum.*all.*active/i
+    final_summing:                 /sum.*active|add.*active|total.*active|sum.*all.*active/i,
+    inactive_token_modifier_rule:  /doubled.*inactive|inactive.*doubled|doubled.*zero|0.*doubled|inactive.*still.*0/i,
+    edge_case_checklist:           /checklist|check.*green.*end|check.*blue.*left|green.*end.*check|blue.*activation.*check/i,
+    debugging_strategy:            /left.*to.*right|token.*by.*token|position.*by.*position|debug.*each|systematic.*token/i,
+    common_mistake_notes:          /common.*mistake|avoid.*assuming|avoid.*red|never.*count.*red|mistake.*counting/i
   }.freeze
 
-  # Returns { item_key => bool } for all 6 items
+  # Returns { item_key => bool } for all 10 items
   def self.detect(memory)
     text = memory_to_text(memory)
     ITEMS.transform_values { |pattern| text.match?(pattern) }

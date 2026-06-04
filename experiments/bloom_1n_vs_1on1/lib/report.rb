@@ -693,7 +693,7 @@ module Report
   end
 
   def self.fine_grained_memory_delta_section(pre_snapshots, memories_by_condition)
-    return '' if pre_snapshots.empty? || memories_by_condition.empty?
+    return '' if pre_snapshots.nil? || pre_snapshots.empty? || memories_by_condition.empty?
     pre_by_learner = pre_snapshots.each_with_object({}) { |s, h| h[s['learner_id']] = s['diag'] }
     items = MemoryDiagnostics::ITEMS.keys
     short = items.map { |k| k.to_s.split('_').first(2).join('_') }
@@ -721,7 +721,8 @@ module Report
     memories_by_condition.sort_by { |k, _| k }.each do |cond, mem_list|
       next if mem_list.empty?
       deltas = mem_list.map do |m|
-        pre_diag  = pre_by_learner[m['learner_id']] || {}
+        raw_diag  = pre_by_learner[m['learner_id']] || {}
+        pre_diag  = raw_diag.transform_keys(&:to_sym)
         post_diag = MemoryDiagnostics.detect(m['memory'])
         {
           acquired: items.count { |k| !pre_diag[k] && post_diag[k] },

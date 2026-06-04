@@ -66,7 +66,7 @@ class_sizes     = config.dig('experiment', 'class_sizes') || {}
 lecture_only_n  = config.dig('experiment', 'lecture_only_n') || 4
 called_on_cfg   = config.dig('experiment', 'called_on_counts') || {}
 
-CONDITIONS = %w[
+V9C_CONDITIONS = %w[
   lecture_only
   pair_discussion_size_2
   small_class_discussion_size_4
@@ -79,7 +79,7 @@ teacher_id   = DB.save_agent(db, run_id: run_id, role: 'classroom_teacher',
 evaluator_id = DB.save_agent(db, run_id: run_id, role: 'evaluator',
                               model: config.dig('models', 'evaluator'))
 
-all_learners = CONDITIONS.flat_map do |condition|
+all_learners = V9C_CONDITIONS.flat_map do |condition|
   n = condition == 'lecture_only' ? lecture_only_n : (class_sizes[condition] || 4)
   n.times.map do |i|
     type_key   = type_keys[i % type_keys.size]
@@ -197,7 +197,7 @@ by_condition['lecture_only']&.each do |learner|
 end
 $stderr.puts "[v9c] Phase 3: lecture_only — no interaction"
 
-DISCUSSION_CONDITIONS = %w[
+V9C_DISCUSSION_CONDITIONS = %w[
   pair_discussion_size_2
   small_class_discussion_size_4
   medium_class_discussion_size_8
@@ -206,7 +206,7 @@ DISCUSSION_CONDITIONS = %w[
 
 pre_snap_by_id = pre_discussion_snapshots.each_with_object({}) { |s, h| h[s['learner_id']] = s['memory'] }
 
-DISCUSSION_CONDITIONS.each do |condition|
+V9C_DISCUSSION_CONDITIONS.each do |condition|
   learners = by_condition[condition]
   next unless learners&.any?
 

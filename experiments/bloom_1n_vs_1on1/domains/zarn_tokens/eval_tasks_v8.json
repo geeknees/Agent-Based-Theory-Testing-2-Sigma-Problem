@@ -90,7 +90,18 @@
         "red doubles next token scores zero",
         "red is a modifier that doubles the token to its right",
         "red doubles the value of the next token and adds 0",
-        "red zarn doubles the next token contributes 0"
+        "red zarn doubles the next token contributes 0",
+        "red contributes 0; doubles the base value of the next token only",
+        "red contributes 0; doubles the base value of the next token only.",
+        "red doubles the base value of the immediately next token; red itself scores 0",
+        "red doubles the base value of the immediately next token; red itself scores 0.",
+        "red doubles the next token's value; contributes 0 itself",
+        "red doubles the next token's value; contributes 0 itself.",
+        "red doubles the value of the token after it and scores 0 points itself",
+        "red itself is worth 0 points and doubles the score of the following token",
+        "red scores 0 and doubles the next token's base value",
+        "red is a modifier that doubles the next token and contributes nothing itself",
+        "red contributes 0 points and doubles the next token's value"
       ]
     }
   },

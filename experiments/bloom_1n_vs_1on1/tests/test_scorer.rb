@@ -2,6 +2,7 @@
 # ABOUTME: No LLM calls; all deterministic inputs and outputs
 
 $LOAD_PATH.unshift File.join(__dir__, '..', 'lib')
+require 'json'
 require 'minitest/autorun'
 require 'token_tracker'
 
@@ -196,5 +197,30 @@ class TestCalibratedConfidence < Minitest::Test
     parsed = { 'answer' => '3', 'active_tokens' => ['yellow'], 'mistakes_found' => [] }
     score = Scorer.score_attempt(parsed, make_task)
     assert_equal 0.0, score['confidence']
+  end
+end
+
+class TestScorer < Minitest::Test
+  def test_l6_induction_accepts_real_learner_paraphrases
+    domain_path = File.expand_path('../domains/zarn_tokens', __dir__)
+    eval_tasks  = JSON.parse(File.read(File.join(domain_path, 'eval_tasks_v8.json')))
+    task        = eval_tasks.find { |t| t['id'] == 'l6_induction_02' }
+
+    # Verbatim answers pulled from v9c run b412cfdb-...; auto-scorer marked all of these
+    # as incorrect (correctness: 0) despite being semantically equivalent to expected_answer.
+    real_paraphrases = [
+      'Red contributes 0; doubles the base value of the next token only.',
+      'Red doubles the base value of the immediately next token; Red itself scores 0.',
+      "Red doubles the next token's value; contributes 0 itself."
+    ]
+
+    real_paraphrases.each do |answer|
+      parsed = { 'answer' => answer, 'active_tokens' => [], 'mistakes_found' => [], 'reason' => 'test' }
+      score  = Scorer.score_attempt(parsed, task)
+      assert score['answer_correct'],
+        "Expected paraphrase to score correct: #{answer.inspect}\n" \
+        "  expected_answer: #{task['expected_answer'].inspect}\n" \
+        "  aliases checked: #{task['acceptable_aliases'].inspect}"
+    end
   end
 end

@@ -118,7 +118,35 @@ discussion 条件間で観測される差は、「協働的な知識構築の質
 「少人数の方が協働学習として優れている」のではなく、「忘却状態からの回復が
 小規模な対話構造でより容易だった」だけかもしれない。
 
-## 5. 結論として何を main report の解釈に反映すべきか
+## 5. corrective_note は静的テンプレートである（F1）
+
+readiness check（`Phases::MasteryCheck`）で誤答した learner には、その task に
+紐づく `corrective_note` が learner memory の `corrected_misconceptions` に
+追加される（`lib/phases/mastery_check.rb:34`, `:50-51`）。この `corrective_note`
+は LLM が learner の誤答内容に応じて動的に生成するものではなく、
+`readiness_check_tasks_v9c.json` に task ごとに事前に書き込まれた**静的な
+固定テキスト**である。例（`readiness_check_tasks_v9c.json:10`）：
+
+> "Recall: [Yellow, Green]. Yellow is always active (7 pts). Green is the last
+> token so it is inactive (0 pts). Score = 7."
+
+つまり、ある learner が「Yellow の活性化条件」を誤解して間違えた場合も、
+「Green の位置判定」を誤解して間違えた場合も、同じ task に対しては同一の
+`corrective_note` が一律に適用される。learner の実際の誤答パターンに
+個別対応した補正ではなく、task 単位の汎用的な「正解の解説」が機械的に
+注入される構造になっている。
+
+**解釈上の要点：** これは readiness check の合否判定（`readiness_failed`）
+そのものを歪めるものではない（正誤判定は learner の応答に対して行われており、
+`corrective_note` は事後的に memory へ追加されるだけ）。しかし、「readiness
+check で誤答した learner は、その後 corrective feedback を受けて改善する」
+という前提を持つ分析を行う場合、その feedback が learner の具体的な誤解に
+適応したものではなく、task 単位の固定テキストである点には留意が必要である。
+F1 は v9c（および readiness check 機構を持つ他バージョン）固有の構造的特徴
+であり、再実験なしに是正可能な「バグ」ではなく、「文書化により注意喚起すべき
+設計上の制約」として扱うのが適切である——本セクションがその文書化に当たる。
+
+## 6. 結論として何を main report の解釈に反映すべきか
 
 - L6 のスコア = 0% は、主として scorer の構造的バグ（F2）による artifact である。ただし
   「修正後は何%になる」という断定的な数値（例: 8.8%）は、v9c 固有のキュレーションに

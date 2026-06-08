@@ -4,10 +4,12 @@
 
 v9c（run_id: b412cfdb-0522-4997-a47e-1738eb414f4b）の独立監査により、5つの方法論的
 バグ・confound（F1-F5、詳細は `2026-06-07-v9-and-earlier-methodology-remediation.md`
-参照）が判明した。このうち F1（corrective_note 静的）と F2（L6 scorer artifact）は
-addendum による再採点で対処済み（[[v9c-methodology-addendum]] [[v9b-methodology-addendum]]
-参照）。残る項目は構造的修正 + 再実行が必須であり、v9c2 の設計に先行して解決すべき
-依存関係を持つ。
+参照）が判明した。このうち F2（L6 scorer artifact）は addendum による再採点で
+対処済みである（[[v9c-methodology-addendum]] [[v9b-methodology-addendum]] 参照）。
+F1（corrective_note 静的テンプレート）はバグではなく構造的な設計上の制約であり、
+再実験や修正の対象ではないと判断し、その旨を addendum に文書化することで対処した
+（[[v9c-methodology-addendum]] セクション 5）。残る項目（F3-F5）は構造的修正 +
+再実行が必須であり、v9c2 の設計に先行して解決すべき依存関係を持つ。
 
 なお、v4-v8 の同型監査（[[v4-v9c-replication-confound-audit-table]]、
 [[v4-v6-methodology-addendum]]、[[v7a-v7b-methodology-addendum]]、

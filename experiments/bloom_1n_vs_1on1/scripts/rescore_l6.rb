@@ -13,7 +13,7 @@ abort 'Usage: ruby scripts/rescore_l6.rb <db_path> <run_id>' unless db_path && r
 domain_path = File.expand_path('../domains/zarn_tokens', __dir__)
 eval_tasks  = JSON.parse(File.read(File.join(domain_path, 'eval_tasks_v8.json')))
 l6_task     = eval_tasks.find { |t| t['task_type'] == 'short_rule_induction' }
-abort 'l6_induction_02 not found in eval_tasks_v8.json' unless l6_task
+abort "No task with task_type 'short_rule_induction' found in eval_tasks_v8.json" unless l6_task
 
 db = SQLite3::Database.new(db_path)
 db.results_as_hash = true

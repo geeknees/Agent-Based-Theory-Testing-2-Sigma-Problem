@@ -4,6 +4,7 @@
 require_relative '../llm'
 require_relative '../helpers'
 require_relative '../learner_types'
+require 'json'
 
 module Phases
   module SizedDiscussion
@@ -28,7 +29,7 @@ module Phases
     # }
     def self.run(condition:, learner_ids:, called_on_count: nil,
                  moderator_id:, moderator_prompt:, participant_prompt:,
-                 lesson:, config:, tracker: nil, learner_type_keys: {})
+                 lesson:, config:, tracker: nil, learner_type_keys: {}, learner_memories: {})
 
       mod_model     = config.dig('models', 'teacher') || 'claude-sonnet-4-6'
       learner_model = config.dig('models', 'learner') || 'claude-sonnet-4-6'
@@ -53,7 +54,9 @@ module Phases
       called_on_ids.each_with_index do |lid, idx|
         history  = Helpers.format_turns_for_prompt(turns)
         type_key = learner_type_keys[lid]
-        ctx      = "DISCUSSION SO FAR:\n#{history}"
+        mem      = learner_memories[lid]
+        ctx      = mem ? "YOUR LEARNING MEMORY:\n#{JSON.pretty_generate(mem)}\n\nDISCUSSION SO FAR:\n#{history}" \
+                       : "DISCUSSION SO FAR:\n#{history}"
         ctx     += "\n\nYOUR LEARNER TYPE: #{type_key} — respond authentically." if type_key
 
         contrib_prompt = Helpers.build_prompt(
@@ -79,7 +82,9 @@ module Phases
         called_on_ids.each do |lid|
           history  = Helpers.format_turns_for_prompt(turns)
           type_key = learner_type_keys[lid]
-          ctx      = "PAIR DISCUSSION:\n#{history}"
+          mem      = learner_memories[lid]
+          ctx      = mem ? "YOUR LEARNING MEMORY:\n#{JSON.pretty_generate(mem)}\n\nPAIR DISCUSSION:\n#{history}" \
+                         : "PAIR DISCUSSION:\n#{history}"
           ctx     += "\n\nYOUR LEARNER TYPE: #{type_key} — respond authentically." if type_key
 
           reply_prompt = Helpers.build_prompt(

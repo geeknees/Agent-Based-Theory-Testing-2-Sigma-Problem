@@ -68,20 +68,10 @@ lecture_only_n = config.dig('experiment', 'lecture_only_n') || 4
 called_on_cfg  = config.dig('experiment', 'called_on_counts') || {}
 n_disc         = config.dig('experiment', 'n_disc') || 5
 
-V9C2_CONDITIONS = %w[
-  lecture_only
-  pair_discussion_size_2
-  small_class_discussion_size_4
-  medium_class_discussion_size_8
-  large_class_discussion_size_16
-].freeze
-
-V9C2_DISCUSSION_CONDITIONS = %w[
-  pair_discussion_size_2
-  small_class_discussion_size_4
-  medium_class_discussion_size_8
-  large_class_discussion_size_16
-].freeze
+# Derive active conditions from config so smoke/partial configs run only the
+# listed class_sizes rather than silently expanding to all 5 conditions.
+V9C2_CONDITIONS = (['lecture_only'] + class_sizes.keys).freeze
+V9C2_DISCUSSION_CONDITIONS = class_sizes.keys.freeze
 
 # Single evaluator — triplication is a no-op since all eval_tasks_v8 tasks use
 # auto-scoring via Scorer.score_attempt (string expected_answer path).
@@ -91,7 +81,7 @@ evaluator_id = DB.save_agent(db, run_id: run_id, role: 'evaluator',
 # A3: For discussion conditions, create base_size * n_disc learners so each of
 # the N_disc independent repetitions gets a fresh group of base_size learners.
 all_learners = V9C2_CONDITIONS.flat_map do |condition|
-  base_n = condition == 'lecture_only' ? lecture_only_n : (class_sizes[condition] || 4)
+  base_n = condition == 'lecture_only' ? lecture_only_n : class_sizes[condition]
   total  = condition == 'lecture_only' ? base_n         : base_n * n_disc
   total.times.map do |i|
     type_key   = type_keys[i % type_keys.size]
@@ -241,7 +231,7 @@ V9C2_DISCUSSION_CONDITIONS.each do |condition|
   learners  = by_condition[condition]
   next unless learners&.any?
 
-  base_size       = class_sizes[condition] || 4
+  base_size       = class_sizes[condition]
   called_on_count = called_on_cfg[condition]&.to_i
   groups          = learners.each_slice(base_size).to_a
 

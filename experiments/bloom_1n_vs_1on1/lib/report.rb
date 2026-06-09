@@ -4,6 +4,7 @@
 require 'csv'
 require 'json'
 require 'date'
+require 'digest'
 require 'fileutils'
 require_relative 'db'
 require_relative 'ownership_metrics'
@@ -18,14 +19,17 @@ module Report
     FileUtils.mkdir_p(output_dir)
     rows                  = DB.all_attempts_with_scores(db, run_id)
     memories_by_condition = DB.all_memories_by_condition(db, run_id)
-    mastery_rows          = %w[v8 v9b v9c].include?(experiment_meta[:experiment]) ?
+    mastery_rows          = %w[v8 v9b v9c v9c2].include?(experiment_meta[:experiment]) ?
                               DB.all_mastery_checks_by_condition(db, run_id) : []
+    sessions_by_condition = experiment_meta[:experiment] == 'v9c2' ?
+                              DB.all_learning_sessions_by_condition(db, run_id) : {}
     write_csv(rows, output_dir)
     markdown = build_markdown(rows, run_id: run_id, output_dir: output_dir,
                               run_config: run_config, token_summary: token_summary,
                               memories_by_condition: memories_by_condition,
                               experiment_meta: experiment_meta,
-                              mastery_rows: mastery_rows)
+                              mastery_rows: mastery_rows,
+                              sessions_by_condition: sessions_by_condition)
     File.write(File.join(output_dir, 'report.md'), markdown)
     $stderr.puts "[report] Wrote scores.csv and report.md to #{output_dir}"
   end
@@ -47,7 +51,7 @@ module Report
     end
   end
 
-  def self.build_markdown(rows, run_id:, output_dir:, run_config:, token_summary:, memories_by_condition: {}, experiment_meta: {}, mastery_rows: [])
+  def self.build_markdown(rows, run_id:, output_dir:, run_config:, token_summary:, memories_by_condition: {}, experiment_meta: {}, mastery_rows: [], sessions_by_condition: {})
     by_condition  = rows.group_by { |r| r['condition'] }
     ceiling_data  = detect_ceiling(rows, run_config)
     token_data    = build_token_data(token_summary, by_condition)
@@ -185,6 +189,22 @@ module Report
     end
     lines << ""
 
+    if experiment_meta[:experiment] == 'v9c2'
+      disc_var = discussion_level_variance_by_condition(rows, sessions_by_condition)
+      lines << "## Score Variance by Condition (discussion-level unit of analysis)"
+      lines << ""
+      lines << "> Each SD is computed across N independent discussion instances — the correct"
+      lines << "> unit of analysis for comparing discussion designs (corrects F4 pseudoreplication)."
+      lines << "> Learners are nested observations within each discussion instance."
+      lines << ""
+      lines << "| Condition | N (independent discussions) | SD (discussion-level) |"
+      lines << "|-----------|------------------------------|----------------------|"
+      disc_var.sort.each do |cond, stats|
+        lines << "| #{cond} | #{stats[:n]} | #{stats[:sd]} |"
+      end
+      lines << ""
+    end
+
     # Token per correct answer
     tpca = token_per_correct_answer(rows, token_summary)
     lines << "**Token cost per correct answer:** #{tpca} tokens"
@@ -206,6 +226,23 @@ module Report
 
     # v9c: readiness + ownership + fine-grained memory delta + interpretation flags
     if experiment_meta[:experiment] == 'v9c'
+      lines << readiness_summary_section(mastery_rows, experiment_meta[:readiness_pass_rate] || 0.0)
+      lines << mastery_check_section(mastery_rows)
+      lines << memory_coverage_section(memories_by_condition)
+      lines << ownership_section(experiment_meta[:ownership_rows] || [])
+      lines << memory_delta_section(experiment_meta[:ownership_rows] || [])
+      lines << fine_grained_memory_delta_section(
+        experiment_meta[:pre_discussion_snapshots] || [],
+        memories_by_condition
+      )
+      lines << interpretation_flags_section(
+        rows, mastery_rows,
+        experiment_meta[:ownership_rows] || [],
+        experiment_meta[:readiness_pass_rate] || 0.0
+      )
+    end
+
+    if experiment_meta[:experiment] == 'v9c2'
       lines << readiness_summary_section(mastery_rows, experiment_meta[:readiness_pass_rate] || 0.0)
       lines << mastery_check_section(mastery_rows)
       lines << memory_coverage_section(memories_by_condition)
@@ -529,6 +566,27 @@ module Report
       mean     = scores.sum / scores.size
       variance = scores.sum { |s| (s - mean)**2 } / (scores.size - 1)
       Math.sqrt(variance).round(3)
+    end
+  end
+
+  def self.discussion_level_variance_by_condition(rows, sessions_by_condition)
+    by_condition = rows.group_by { |r| r['condition'] }
+    sessions_by_condition.transform_values do |session_rows|
+      cond       = session_rows.first['condition']
+      cond_rows  = by_condition[cond] || []
+      by_learner = cond_rows.group_by { |r| r['learner_id'] }
+
+      groups = session_rows.group_by { |s| Digest::MD5.hexdigest(s['transcript_json']) }
+      means  = groups.values.map do |group_sessions|
+        learner_ids = group_sessions.map { |s| s['learner_id'] }.uniq
+        scores      = learner_ids.map { |lid| avg_correctness(by_learner[lid] || []) }
+        scores.empty? ? 0.0 : scores.sum / scores.size
+      end
+
+      next({ n: means.size, sd: 0.0 }) if means.size < 2
+      mean     = means.sum / means.size
+      variance = means.sum { |m| (m - mean)**2 } / (means.size - 1)
+      { n: means.size, sd: Math.sqrt(variance).round(3) }
     end
   end
 

@@ -52,8 +52,9 @@ module Report
   end
 
   def self.build_markdown(rows, run_id:, output_dir:, run_config:, token_summary:, memories_by_condition: {}, experiment_meta: {}, mastery_rows: [], sessions_by_condition: {})
-    by_condition  = rows.group_by { |r| r['condition'] }
-    ceiling_data  = detect_ceiling(rows, run_config)
+    scored_rows   = experiment_meta[:experiment] == 'v9c2' ? core_rows(rows) : rows
+    by_condition  = scored_rows.group_by { |r| r['condition'] }
+    ceiling_data  = detect_ceiling(scored_rows, run_config)
     token_data    = build_token_data(token_summary, by_condition)
 
     lines = []
@@ -101,19 +102,19 @@ module Report
     lines << ""
 
     # Score by task type
-    all_conds       = rows.map { |r| r['condition'] }.uniq
+    all_conds       = scored_rows.map { |r| r['condition'] }.uniq
     classroom_conds = all_conds.select { |c| c.include?('classroom') }
     tutoring_conds  = all_conds.select { |c| c.include?('tutoring') || c == '1on1' }
 
     if %w[v9b v9c].include?(experiment_meta[:experiment])
-      lines << score_by_task_type_v9b(rows, all_conds.sort)
-      lines << score_by_difficulty_v9b(rows, all_conds.sort)
+      lines << score_by_task_type_v9b(scored_rows, all_conds.sort)
+      lines << score_by_difficulty_v9b(scored_rows, all_conds.sort)
     else
       lines << "## Score by Task Type × Condition"
       lines << ""
       lines << "| Task Type | Difficulty | No-Ed Correct% | Classroom Correct% | Tutoring Correct% |"
       lines << "|-----------|-----------|----------------|-------------------|-------------------|"
-      rows.group_by { |r| r['task_type'] }.sort.each do |task_type, type_rows|
+      scored_rows.group_by { |r| r['task_type'] }.sort.each do |task_type, type_rows|
         diff   = extract_difficulty(type_rows.first['task_id'])
         no_pct = avg_correctness(type_rows.select { |r| r['condition'] == 'no_education' })
         c_pct  = avg_correctness(type_rows.select { |r| classroom_conds.include?(r['condition']) })
@@ -128,7 +129,7 @@ module Report
       lines << "| Level | Task Types | No-Ed Correct% | Classroom Correct% | Tutoring Correct% |"
       lines << "|-------|-----------|----------------|-------------------|-------------------|"
       DIFFICULTY_LEVELS.each do |level|
-        level_rows = rows.select { |r| extract_difficulty(r['task_id']) == level }
+        level_rows = scored_rows.select { |r| extract_difficulty(r['task_id']) == level }
         next if level_rows.empty?
         types  = level_rows.map { |r| r['task_type'] }.uniq.join(', ')
         no_pct = avg_correctness(level_rows.select { |r| r['condition'] == 'no_education' })
@@ -166,7 +167,7 @@ module Report
     lines << "## Score by Learner Profile"
     lines << ""
     %w[ability misconception interest].each do |dim|
-      by_dim = score_by_profile_dimension(rows, dim)
+      by_dim = score_by_profile_dimension(scored_rows, dim)
       next if by_dim.empty?
       lines << "### By #{dim.capitalize}"
       lines << ""
@@ -179,7 +180,7 @@ module Report
     end
 
     # Variance by condition
-    variance = score_variance_by_condition(rows)
+    variance = score_variance_by_condition(scored_rows)
     lines << "## Score Variance by Condition (std dev of per-learner correct%)"
     lines << ""
     lines << "| Condition | Std Dev |"
@@ -190,7 +191,7 @@ module Report
     lines << ""
 
     if experiment_meta[:experiment] == 'v9c2'
-      disc_var = discussion_level_variance_by_condition(rows, sessions_by_condition)
+      disc_var = discussion_level_variance_by_condition(scored_rows, sessions_by_condition)
       lines << "## Score Variance by Condition (discussion-level unit of analysis)"
       lines << ""
       lines << "> Each SD is computed across N independent discussion instances — the correct"
@@ -206,7 +207,7 @@ module Report
     end
 
     # Token per correct answer
-    tpca = token_per_correct_answer(rows, token_summary)
+    tpca = token_per_correct_answer(scored_rows, token_summary)
     lines << "**Token cost per correct answer:** #{tpca} tokens"
     lines << ""
 
@@ -257,10 +258,11 @@ module Report
         experiment_meta[:ownership_rows] || [],
         experiment_meta[:readiness_pass_rate] || 0.0
       )
+      lines << l6_rows_section(rows)
     end
 
     # Heterogeneity interpretation
-    interpretations = heterogeneity_interpretation(rows, token_summary)
+    interpretations = heterogeneity_interpretation(scored_rows, token_summary)
     lines << "## Heterogeneity Interpretation"
     lines << ""
     if interpretations.empty?
@@ -271,7 +273,7 @@ module Report
     lines << ""
 
     # Score by learner type
-    type_scores = score_by_learner_type(rows)
+    type_scores = score_by_learner_type(scored_rows)
     unless type_scores.empty?
       lines << "## Score by Learner Type"
       lines << ""
@@ -297,8 +299,8 @@ module Report
     end
 
     # Confidence calibration summary
-    hcw_rate  = high_confidence_wrong_rate(rows)
-    abst_rate = abstention_rate(rows)
+    hcw_rate  = high_confidence_wrong_rate(scored_rows)
+    abst_rate = abstention_rate(scored_rows)
     lines << "## Confidence Calibration"
     lines << ""
     lines << "| Metric | Rate |"
@@ -309,7 +311,7 @@ module Report
 
     # Exp A: passive_listener rescue effect
     if experiment_meta[:experiment] == 'A'
-      rescue_table = passive_listener_rescue_effect(rows)
+      rescue_table = passive_listener_rescue_effect(scored_rows)
       unless rescue_table.empty?
         lines << "## Passive Listener Rescue Effect"
         lines << ""
@@ -320,7 +322,7 @@ module Report
 
     # Exp B: order_confused scaffold effect + procedure order errors
     if experiment_meta[:experiment] == 'B'
-      scaffold_table = order_confused_scaffold_effect(rows)
+      scaffold_table = order_confused_scaffold_effect(scored_rows)
       unless scaffold_table.empty?
         lines << "## Order Confused Scaffold Effect"
         lines << ""
@@ -328,7 +330,7 @@ module Report
         lines << ""
       end
 
-      proc_error_rate = procedure_order_error_rate(rows)
+      proc_error_rate = procedure_order_error_rate(scored_rows)
       lines << "## Procedure Order Errors"
       lines << ""
       lines << "| Metric | Rate |"
@@ -533,6 +535,39 @@ module Report
   def self.extract_difficulty(task_id)
     m = task_id.to_s.match(/^(l\d)/i)
     m ? m[1].upcase : 'unknown'
+  end
+
+  def self.core_rows(rows)
+    rows.reject { |r| extract_difficulty(r['task_id']) == 'L6' }
+  end
+
+  def self.l6_rows_section(rows)
+    l6 = rows.select { |r| extract_difficulty(r['task_id']) == 'L6' }
+    lines = []
+    lines << "## L6 (short_rule_induction) — Exploratory Appendix"
+    lines << ""
+    lines << "> L6 is excluded from the main score. The exact-match scorer cannot reliably"
+    lines << "> grade free-text rule induction (F2: scorer artifact confirmed across v8/v9b/v9c)."
+    lines << "> These results are exploratory only — do not use them for condition comparisons."
+    lines << ""
+    if l6.empty?
+      lines << "_No L6 attempts found for this run._"
+      lines << ""
+      return lines.join("\n")
+    end
+    task_ids = l6.map { |r| r['task_id'] }.uniq.sort
+    lines << "**L6 task IDs in this run:** #{task_ids.join(', ')}"
+    lines << ""
+    by_condition = l6.group_by { |r| r['condition'] }
+    lines << "| Condition | L6 Attempts | Correct (exact-match) | Note |"
+    lines << "|-----------|-------------|----------------------|------|"
+    by_condition.sort.each do |cond, cond_rows|
+      total   = cond_rows.size
+      correct = cond_rows.count { |r| r['answer_correct'] == true || r['answer_correct'] == 1 }
+      lines << "| #{cond} | #{total} | #{correct} | exact-match only — likely undercount |"
+    end
+    lines << ""
+    lines.join("\n")
   end
 
   def self.avg_correctness(rows)

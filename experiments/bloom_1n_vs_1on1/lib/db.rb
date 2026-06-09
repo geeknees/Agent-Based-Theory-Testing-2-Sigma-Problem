@@ -239,6 +239,14 @@ module DB
     end
   end
 
+  def self.all_learning_sessions_by_condition(db, run_id)
+    rows = db.execute(
+      'SELECT condition, learner_id, transcript_json FROM learning_sessions WHERE run_id = ? ORDER BY condition, learner_id',
+      [run_id]
+    )
+    rows.group_by { |r| r['condition'] }
+  end
+
   def self.all_attempts_with_scores(db, run_id)
     db.execute(<<~SQL, [run_id])
       SELECT

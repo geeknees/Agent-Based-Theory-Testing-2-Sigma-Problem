@@ -14,10 +14,16 @@ module Phases
       'auto_scored' => false, 'comments' => 'LLM evaluator failed to produce parseable JSON'
     }.freeze
 
+    # Task types that require LLM semantic evaluation instead of exact-match scoring.
+    # short_rule_induction (L6) answers are free-text; exact-match produces near-zero
+    # scores regardless of semantic correctness (F2 scorer artifact, v8/v9b/v9c).
+    SEMANTIC_TASK_TYPES = %w[short_rule_induction].freeze
+
     def self.score(attempt_id:, learner_response:, parsed_response:, task:, rubric:,
                    evaluator_id:, evaluator_prompt:, config:, tracker: nil)
-      # Auto-score if task has machine-checkable expected_answer string
-      if task['expected_answer'].is_a?(String)
+      # Auto-score if task has machine-checkable expected_answer string,
+      # unless the task type requires semantic (LLM) evaluation.
+      if task['expected_answer'].is_a?(String) && !SEMANTIC_TASK_TYPES.include?(task['task_type'])
         auto = Scorer.score_attempt(parsed_response, task)
         $stderr.puts "[evaluator] Auto-scored attempt #{attempt_id}: #{auto['total']} (answer_correct=#{auto['answer_correct']})"
         return auto

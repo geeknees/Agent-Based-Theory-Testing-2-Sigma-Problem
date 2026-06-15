@@ -25,13 +25,13 @@ module Phases
                      "#{Phases::SizedDiscussion::DISCUSSION_PROBLEM}"
       )
 
-      note  = LLM.call(prompt, model: learner_model, tracker: tracker, phase: 'education_lecture_only')
+      note  = LLM.call(prompt, model: learner_model, tracker: tracker, phase: 'education_lecture_plus_self_reflection')
       turns = [{ 'speaker' => learner_id, 'type' => 'reflection_note', 'content' => note }]
 
       $stderr.puts "[self_reflection:#{learner_id}] Reflection note produced"
 
       {
-        'condition'  => 'lecture_only',
+        'condition'  => 'lecture_plus_self_reflection',
         'turns'      => turns,
         'learner_id' => learner_id
       }

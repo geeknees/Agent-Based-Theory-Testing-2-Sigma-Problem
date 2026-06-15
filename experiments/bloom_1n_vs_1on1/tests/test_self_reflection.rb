@@ -3,6 +3,7 @@
 
 $LOAD_PATH.unshift File.join(__dir__, '..', 'lib')
 require 'minitest/autorun'
+require 'minitest/mock'
 require 'phases/self_reflection'
 
 class TestSelfReflection < Minitest::Test
@@ -33,9 +34,9 @@ class TestSelfReflection < Minitest::Test
     end
   end
 
-  def test_condition_is_lecture_only
+  def test_condition_is_lecture_plus_self_reflection
     result, _ = run_with_capture
-    assert_equal 'lecture_only', result['condition']
+    assert_equal 'lecture_plus_self_reflection', result['condition']
   end
 
   def test_has_one_reflection_note_turn

@@ -64,13 +64,13 @@ File.write(File.join(run_dir, 'config.json'), JSON.pretty_generate(config))
 type_keys      = (config.dig('experiment', 'learner_types') || []).map(&:to_sym)
 type_keys      = LearnerTypes::HETEROGENEOUS_ASSIGNMENT if type_keys.empty?
 class_sizes    = config.dig('experiment', 'class_sizes') || {}
-lecture_only_n = config.dig('experiment', 'lecture_only_n') || 4
+lecture_only_n = config.dig('experiment', 'lecture_plus_self_reflection_n') || 4
 called_on_cfg  = config.dig('experiment', 'called_on_counts') || {}
 n_disc         = config.dig('experiment', 'n_disc') || 5
 
 # Derive active conditions from config so smoke/partial configs run only the
 # listed class_sizes rather than silently expanding to all 5 conditions.
-V9C2_CONDITIONS = (['lecture_only'] + class_sizes.keys).freeze
+V9C2_CONDITIONS = (['lecture_plus_self_reflection'] + class_sizes.keys).freeze
 V9C2_DISCUSSION_CONDITIONS = class_sizes.keys.freeze
 
 # Single evaluator — triplication is a no-op since all eval_tasks_v8 tasks use
@@ -81,8 +81,8 @@ evaluator_id = DB.save_agent(db, run_id: run_id, role: 'evaluator',
 # A3: For discussion conditions, create base_size * n_disc learners so each of
 # the N_disc independent repetitions gets a fresh group of base_size learners.
 all_learners = V9C2_CONDITIONS.flat_map do |condition|
-  base_n = condition == 'lecture_only' ? lecture_only_n : class_sizes[condition]
-  total  = condition == 'lecture_only' ? base_n         : base_n * n_disc
+  base_n = condition == 'lecture_plus_self_reflection' ? lecture_only_n : class_sizes[condition]
+  total  = condition == 'lecture_plus_self_reflection' ? base_n         : base_n * n_disc
   total.times.map do |i|
     type_key   = type_keys[i % type_keys.size]
     learner_id = DB.save_agent(db, run_id: run_id, role: 'learner', condition: condition,
@@ -181,10 +181,10 @@ $stderr.puts "[v9c2] Phase 3: Condition interactions"
 
 all_ownership_data = {}
 
-# A6: lecture_only — self-reflection phase (replaces zero-interaction block)
+# A6: lecture_plus_self_reflection — self-reflection phase (replaces zero-interaction block)
 # teacher_or_tutor_id is set to learner[:id] since there is no teacher in self-reflection
 # and the column is NOT NULL.
-by_condition['lecture_only']&.each do |learner|
+by_condition['lecture_plus_self_reflection']&.each do |learner|
   memory = pre_snap_by_id[learner[:id]] || DB.get_learner_memory(db, run_id: run_id, learner_id: learner[:id])
   result = Phases::SelfReflection.run(
     learner_id: learner[:id], memory: memory,
@@ -192,7 +192,7 @@ by_condition['lecture_only']&.each do |learner|
     config: config, tracker: tracker, learner_type_key: learner[:type_key]
   )
 
-  DB.save_learning_session(db, run_id: run_id, condition: 'lecture_only',
+  DB.save_learning_session(db, run_id: run_id, condition: 'lecture_plus_self_reflection',
                            learner_id: learner[:id], teacher_or_tutor_id: learner[:id],
                            transcript: result)
 
@@ -203,13 +203,13 @@ by_condition['lecture_only']&.each do |learner|
     learner_type_key: learner[:type_key]
   )
   DB.save_learner_memory(db, run_id: run_id, learner_id: learner[:id],
-                         condition: 'lecture_only', memory: updated)
+                         condition: 'lecture_plus_self_reflection', memory: updated)
 
   diag_delta = MemoryDiagnostics.delta(memory, updated)
 
   File.open(File.join(run_dir, 'memories.jsonl'), 'a') do |f|
     f.puts JSON.dump({ phase: 'post_interaction', learner_id: learner[:id],
-                       condition: 'lecture_only', type_key: learner[:type_key].to_s,
+                       condition: 'lecture_plus_self_reflection', type_key: learner[:type_key].to_s,
                        diag_delta: diag_delta,
                        diag_post: MemoryDiagnostics.detect(updated),
                        memory: updated })
@@ -224,7 +224,7 @@ by_condition['lecture_only']&.each do |learner|
     'memory_delta_after_discussion' => diag_delta[:acquired]
   }
 end
-$stderr.puts "[v9c2] Phase 3: lecture_only — self-reflection complete"
+$stderr.puts "[v9c2] Phase 3: lecture_plus_self_reflection — self-reflection complete"
 
 # A3+A5: discussion conditions — N_disc independent repetitions, fresh teacher per group
 V9C2_DISCUSSION_CONDITIONS.each do |condition|

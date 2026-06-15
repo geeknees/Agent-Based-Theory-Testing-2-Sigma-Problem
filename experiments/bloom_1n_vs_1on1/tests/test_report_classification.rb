@@ -76,3 +76,54 @@ class TestDetectCeiling3Conditions < Minitest::Test
     refute_equal 'too_easy', result.first[:classification]
   end
 end
+
+class TestDetectCeilingV9c2Conditions < Minitest::Test
+  def make_rows(condition, task_type, task_id, answer_correct)
+    Array.new(2) do
+      {
+        'condition' => condition,
+        'task_type' => task_type,
+        'task_id'   => task_id,
+        'score_json' => JSON.dump({ 'answer_correct' => answer_correct, 'total' => answer_correct ? 4 : 0 })
+      }
+    end
+  end
+
+  def v9c2_rows(answer_correct)
+    make_rows('lecture_plus_self_reflection', 'recall', 'l1_recall_01', answer_correct) +
+    make_rows('pair_discussion_size_2',       'recall', 'l1_recall_01', answer_correct) +
+    make_rows('medium_class_discussion_size_8','recall', 'l1_recall_01', answer_correct)
+  end
+
+  def test_v9c2_baseline_is_lecture_plus_self_reflection
+    rows   = v9c2_rows(true)
+    config = { 'experiment' => { 'ceiling_threshold' => 0.9 } }
+    result = Report.detect_ceiling(rows, config)
+    assert_in_delta 1.0, result.first[:no_ed_pct], 0.01,
+      'lecture_plus_self_reflection should map to no_ed_pct'
+  end
+
+  def test_v9c2_discussion_conditions_map_to_classroom_pct
+    rows   = v9c2_rows(true)
+    config = { 'experiment' => { 'ceiling_threshold' => 0.9 } }
+    result = Report.detect_ceiling(rows, config)
+    assert_in_delta 1.0, result.first[:classroom_pct], 0.01,
+      '_discussion_size_ conditions should map to classroom_pct'
+  end
+
+  def test_v9c2_nonzero_pct_not_too_hard
+    rows   = v9c2_rows(true)
+    config = { 'experiment' => { 'ceiling_threshold' => 0.9 } }
+    result = Report.detect_ceiling(rows, config)
+    refute_equal 'too_hard', result.first[:classification]
+  end
+
+  def test_lecture_only_as_no_ed_fallback
+    rows = make_rows('lecture_only',            'recall', 'l1_recall_01', true) +
+           make_rows('pair_discussion_size_2',  'recall', 'l1_recall_01', true)
+    config = { 'experiment' => { 'ceiling_threshold' => 0.9 } }
+    result = Report.detect_ceiling(rows, config)
+    assert_in_delta 1.0, result.first[:no_ed_pct], 0.01,
+      'lecture_only should map to no_ed_pct when no_education is absent'
+  end
+end

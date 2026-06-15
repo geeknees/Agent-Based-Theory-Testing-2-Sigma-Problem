@@ -2,7 +2,7 @@
 experiment:
   name: "bloom_v9c2_classroom_size"
   domain: "zarn_tokens"
-  lecture_only_n: 4
+  lecture_plus_self_reflection_n: 4
   n_disc: 5
   class_sizes:
     pair_discussion_size_2: 2

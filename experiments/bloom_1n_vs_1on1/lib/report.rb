@@ -106,7 +106,7 @@ module Report
     classroom_conds = all_conds.select { |c| c.include?('classroom') }
     tutoring_conds  = all_conds.select { |c| c.include?('tutoring') || c == '1on1' }
 
-    if %w[v9b v9c].include?(experiment_meta[:experiment])
+    if %w[v9b v9c v9c2].include?(experiment_meta[:experiment])
       lines << score_by_task_type_v9b(scored_rows, all_conds.sort)
       lines << score_by_difficulty_v9b(scored_rows, all_conds.sort)
     else
@@ -258,6 +258,7 @@ module Report
         experiment_meta[:ownership_rows] || [],
         experiment_meta[:readiness_pass_rate] || 0.0
       )
+      lines << token_normalized_section(scored_rows, token_summary, by_condition)
       lines << l6_rows_section(rows)
     end
 
@@ -362,13 +363,47 @@ module Report
 
   # ---- private helpers ----
 
+  BASELINE_CONDITION_KEYS = %w[no_education lecture_only lecture_plus_self_reflection].freeze
+
+  def self.baseline_condition_key(score_by_cond)
+    BASELINE_CONDITION_KEYS.find { |k| score_by_cond.key?(k) }
+  end
+
+  def self.token_normalized_section(scored_rows, token_summary, by_condition)
+    lines = []
+    lines << "## Token-Normalized Score by Condition (education tokens)"
+    lines << ""
+    lines << "> Learning efficiency: correct answers per 1k tokens spent in the education phase."
+    lines << "> Education tokens = `education_<condition>` phase only (excludes evaluation, memory, readiness)."
+    lines << ""
+    lines << "| Condition | Correct% | Edu Tokens | Correct / 1k Edu Tokens |"
+    lines << "|-----------|---------|------------|------------------------|"
+    by_condition.keys.sort.each do |cond|
+      cond_rows   = by_condition[cond]
+      correct_pct = avg_correctness(cond_rows)
+      correct_n   = cond_rows.count { |r| r['score_json'] && JSON.parse(r['score_json'])['answer_correct'] == true }
+      edu_tokens  = (token_summary["education_#{cond}"] || {})['total_tokens'].to_i
+      per_1k      = edu_tokens > 0 ? format('%.2f', correct_n * 1000.0 / edu_tokens) : '—'
+      edu_display = edu_tokens > 0 ? edu_tokens.to_s : '—'
+      lines << "| #{cond} | #{(correct_pct * 100).round}% | #{edu_display} | #{per_1k} |"
+    end
+    lines << ""
+    lines.join("\n")
+  end
+
   def self.detect_ceiling(rows, run_config)
     threshold       = (run_config.dig('experiment', 'ceiling_threshold') || CEILING_THRESHOLD).to_f
     all_conds       = rows.map { |r| r['condition'] }.uniq
-    classroom_conds = all_conds.select { |c| c.include?('classroom') }
+    # no_education takes precedence; fall back to lecture variants (v9b/v9c/v9c2)
+    no_ed_cond      = all_conds.find { |c| c == 'no_education' } ||
+                      all_conds.find { |c| %w[lecture_only lecture_plus_self_reflection].include?(c) }
+    # classroom: legacy 'classroom' name OR v9c2 discussion-size conditions
+    classroom_conds = all_conds.select { |c| c.include?('classroom') ||
+                                             c.include?('_discussion_size_') ||
+                                             c.start_with?('pair_discussion') }
     tutoring_conds  = all_conds.select { |c| c.include?('tutoring') || c == '1on1' }
     rows.group_by { |r| r['task_type'] }.map do |task_type, type_rows|
-      no_ed_pct  = avg_correctness(type_rows.select { |r| r['condition'] == 'no_education' })
+      no_ed_pct  = avg_correctness(type_rows.select { |r| r['condition'] == no_ed_cond })
       c_pct      = avg_correctness(type_rows.select { |r| classroom_conds.include?(r['condition']) })
       t_pct      = avg_correctness(type_rows.select { |r| tutoring_conds.include?(r['condition']) })
       difficulty = extract_difficulty(type_rows.first['task_id'])
@@ -544,11 +579,12 @@ module Report
   def self.l6_rows_section(rows)
     l6 = rows.select { |r| extract_difficulty(r['task_id']) == 'L6' }
     lines = []
-    lines << "## L6 (short_rule_induction) — Exploratory Appendix"
+    lines << "## L6 (short_rule_induction) — Appendix"
     lines << ""
-    lines << "> L6 is excluded from the main score. The exact-match scorer cannot reliably"
-    lines << "> grade free-text rule induction (F2: scorer artifact confirmed across v8/v9b/v9c)."
-    lines << "> These results are exploratory only — do not use them for condition comparisons."
+    lines << "> L6 is excluded from the main score. The evaluator uses LLM semantic scoring"
+    lines << "> (Option B) for short_rule_induction tasks — exact-match produced 0% across all"
+    lines << "> runs (F2: scorer artifact, v8/v9b/v9c). Results below use LLM judge scores."
+    lines << "> Do not compare directly with exact-match scores from earlier runs."
     lines << ""
     if l6.empty?
       lines << "_No L6 attempts found for this run._"
@@ -860,12 +896,11 @@ module Report
     ordered_scores = disc_scores.map { |_, v| v }
     class_size_effect_supported = ordered_scores == ordered_scores.sort.reverse && ordered_scores.size >= 2
 
-    # Lecture-only dominance
-    lecture_score = score_by_cond['lecture_only'] || 0.0
-    disc_cond_scores = score_by_cond.reject { |k, _| k == 'lecture_only' }
-    lecture_only_dominant = disc_cond_scores.values.all? { |s| s <= lecture_score } && disc_cond_scores.any?
-
-    # Discussion added value (any discussion > lecture_only + 5pp)
+    # Baseline (lecture_only / lecture_plus_self_reflection / no_education) dominance
+    baseline_key  = baseline_condition_key(score_by_cond)
+    lecture_score = baseline_key ? (score_by_cond[baseline_key] || 0.0) : 0.0
+    disc_cond_scores = baseline_key ? score_by_cond.reject { |k, _| k == baseline_key } : score_by_cond
+    lecture_only_dominant  = disc_cond_scores.values.all? { |s| s <= lecture_score } && disc_cond_scores.any?
     discussion_added_value = disc_cond_scores.values.any? { |s| s > lecture_score + 0.05 }
 
     lines = []

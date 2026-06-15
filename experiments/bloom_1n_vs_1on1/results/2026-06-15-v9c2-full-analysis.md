@@ -27,7 +27,7 @@ v9c の独立監査（[[v9c-methodology-addendum]]）で確認された5つの�
 | **A3**: discussion の反復化 | 各条件で discussion を1回だけ生成（`unique_discussions=1`、F4: 疑似反復） | 各条件で `class_sizes[condition] × n_disc(=5)` 人の学習者を生成し、5回の独立した discussion を実施。集計単位を discussion-level mean に変更 |
 | **A5**: moderator/teacher の複数インスタンス化 | 全 run で `classroom_teacher` が単一インスタンス（F5b） | A3 の各反復に**新規の `classroom_teacher` エージェント**を割り当て（5体）。evaluator の triplication は採点ロジックがLLM分岐に到達しないため意図的に見送り（後述） |
 | **A6**: lecture_only の学習機会公平性 | discussion 相当の学習機会なし（`learning_sessions=0`、F5c） | `SelfReflection` phase を新設。pre-discussion memory を持った状態で個人省察ノートを書かせる（discussion条件と同等のtoken budget） |
-| **A8**: L6 (short_rule_induction) の評価方針 | exact-match scorer の artifact が未解決のまま main score に混在（F2） | L6 を main score から除外し、exploratory appendix として別掲（Option A採用） |
+| **A8**: L6 (short_rule_induction) の評価方針 | exact-match scorer の artifact が未解決のまま main score に混在（F2） | L6 を main score から除外し、appendix として別掲（Option A採用）。本 run 終了後に Option B（`SEMANTIC_TASK_TYPES` による LLM semantic scorer）を実装済み。main score 除外は次の run まで継続。 |
 
 ### 条件設計（population-multiplication design）
 
@@ -132,16 +132,33 @@ discussion-level SD は learner-level SD よりも一貫して小さい — こ�
 
 ### 3.3 タスクタイプ別スコア（L6除外）
 
-| Task Type | Difficulty | No-Ed | Classroom | Tutoring | 分類 |
-|-----------|-----------|-------|-----------|----------|------|
-| recall | L1 | 0% | 0% | 0% | too_hard* |
-| edge_case | L2 | 0% | 0% | 0% | too_hard* |
-| rule_interaction | L3 | 0% | 0% | 0% | too_hard* |
-| debugging | L4 | 0% | 0% | 0% | too_hard* |
-| explanation_choice | L7 | 0% | 0% | 0% | too_hard* |
-| peer_error_detection | L7 | 0% | 0% | 0% | too_hard* |
+| Task Type | Difficulty | large | lecture_only | medium | pair | small |
+|-----------|-----------|-------|--------------|--------|------|-------|
+| recall | L1 | 74% | 75% | 80% | 80% | 60% |
+| edge_case | L2 | 85% | 88% | 90% | 80% | 80% |
+| rule_interaction | L3 | 68% | 75% | 78% | 70% | 65% |
+| debugging | L4 | 73% | 75% | 79% | 70% | 67% |
+| debugging | L5 | 75% | 75% | 80% | 80% | 65% |
+| explanation_choice | L7 | 100% | 100% | 100% | 100% | 95% |
+| peer_error_detection | L7 | 99% | 100% | 100% | 100% | 100% |
 
-*この分類セクションは `report.rb` の `No-Ed/Classroom/Tutoring` ラベリングロジックが v9c2 の5条件構造（lecture_only/pair/small/medium/large）に未対応であることに起因する表示上の問題であり、実際の正答率（セクション3.1）はすべて76-86%の範�域にある。v9c から持ち越されている既知の表示課題（セクション6で詳述）。
+タスクタイプ間の差が条件間の差より大きい。L7（explanation_choice / peer_error_detection）は95-100%とほぼ天井、L3（rule_interaction）は65-78%と最も低い。**条件間差はどのタスクタイプでも最大15pp以内**であり、セクション3.1の「全体10pp差」と整合する。
+
+### 3.3.1 Token-normalized Score（教育フェーズトークン正規化）
+
+> 学習効率指標：教育フェーズ（`education_<condition>`）のトークン1k当たりの正答数。evaluation / memory / readiness フェーズは除外。
+
+| 条件 | Correct% | Edu Tokens | Correct / 1k Edu Tokens |
+|------|---------|------------|------------------------|
+| large_class_discussion_size_16 | 81% | 35,035 | **16.67** |
+| lecture_only | 83% | 2,716 | 11.05 |
+| medium_class_discussion_size_8 | 86% | 41,580 | 7.46 |
+| small_class_discussion_size_4 | 76% | 42,590 | 3.19 |
+| pair_discussion_size_2 | 80% | 45,775 | 1.57 |
+
+**最大の発見：lecture_only（self-reflection版）のトークン効率は 11.05/1k と、discussion条件（1.57〜16.67/1k）に対して中位に位置する。** large（16.67/1k）が最高効率なのは、1教師が16人をまとめて教育するためトークン/人が最小になるためであり、「educational ROI」として解釈できる。
+
+**注意：** lecture_only の教育トークン（2,716）は discussion 条件（35k〜46k）の約1/15。A6（self-reflection）によりトークン予算は「揃えた」つもりだったが、self-reflection の1ターンのみでは discussion の往復コストに遠く及ばない。この非対称性が v9c2 の残る confound である（後述セクション6.2）。
 
 ### 3.4 Learner Type 別スコア
 
@@ -287,11 +304,9 @@ v9c では learner type 間の最大差は8pp（rule_extractor 67% vs passive_li
 
 2. **A6によるlecture_onlyの研究問題再定義** — v9c2のlecture_only（83%）はv9cのlecture_only（28%）と直接比較できない。両者は異なる構成概念（「学習機会ゼロ」vs「個人内省」）を測定している。今後のレポートでこの数値を時系列比較する際は必ず注記が必要。
 
-3. **L6 (short_rule_induction) は依然未解決** — Option A（main scoreから除外）を採用したため、L6に関する知見は本runでは得られていない（exploratory appendix参照、セクション7）。
+3. **L6 (short_rule_induction) は本 run では知見なし。ただし次 run で LLM 採点が有効化** — Option A（main scoreから除外）を本 run で採用したため、L6の比較知見はない。本 run 終了後に `SEMANTIC_TASK_TYPES = %w[short_rule_induction]` を実装し、次 run から LLM semantic scorer で採点される（appendix参照、セクション7）。main score 除外は次 run での結果検証まで継続。
 
-4. **Task Type別スコア表示の不具合（セクション3.3）** — `report.rb` の `No-Ed/Classroom/Tutoring` 分類ラベルは v9c2 の5条件構造に未対応で、全タスクタイプが「too_hard (0%)」と誤表示される。実際のスコアはセクション3.1の通り76-86%であり、この表示問題は**結果の解釈には影響しない**が、`report.rb` の修正が今後望ましい（v9b/v9c由来の2条件想定ロジックの残存）。
-
-5. **A5（evaluator triplication）は意図的に未実装** — `eval_tasks_v8.json` の全タスクが文字列 `expected_answer` を持つため、`Phases::Evaluator.score` は常にLLM分岐に到達せず、evaluatorの複数化は追加のLLM呼び出しを生まないno-opとなる。実装計画書に明記の通り、F5b（evaluatorの単一性）はこのタスクセットでは実質的に問題化しない。L6でsemantic scorer（Option B）を採用する場合は再検討が必要。
+4. **A5（evaluator triplication）は意図的に未実装** — `eval_tasks_v8.json` の全タスクが文字列 `expected_answer` を持つため、`Phases::Evaluator.score` は常にLLM分岐に到達せず、evaluatorの複数化は追加のLLM呼び出しを生まないno-opとなる。実装計画書に明記の通り、F5b（evaluatorの単一性）はこのタスクセットでは実質的に問題化しない。L6 semantic scorer（Option B 実装後）では再検討が必要。
 
 6. **medium_class_discussion_size_8 の「最高スコア」は1回のbest-of-5かもしれない** — discussion-level SD=0.076は他条件と大差ないため、mediumの86%が「真の効果」か「5回の独立discussionの中での偶然の最大値」かは、本データだけでは判別できない。
 
@@ -299,9 +314,11 @@ v9c では learner type 間の最大差は8pp（rule_extractor 67% vs passive_li
 
 ---
 
-## 7. L6 (short_rule_induction) — Exploratory Appendix
+## 7. L6 (short_rule_induction) — Appendix
 
-> L6 はmain scoreから除外（A8 Option A）。exact-match scorerはfree-text rule inductionを信頼性高く採点できない（F2: scorer artifact、v8/v9b/v9cで確認済み）。以下は探索的指標であり、条件間比較には使用しない。
+> L6 はmain scoreから除外（A8 Option A）。exact-match scorerはfree-text rule inductionを信頼性高く採点できない（F2: scorer artifact、v8/v9b/v9cで確認済み）。以下はこの run での参考数値であり、条件間比較には使用しない。
+>
+> **本 run 終了後の変更：** `Phases::Evaluator` に `SEMANTIC_TASK_TYPES = %w[short_rule_induction]` を追加し、L6 は exact-match scorer をバイパスして LLM evaluator で採点されるようになった（Option B）。main score 除外は次 run の結果で検証するまで継続。
 
 | 条件 | L6 Attempts | Correct (exact-match) |
 |------|-------------|------------------------|
@@ -320,11 +337,11 @@ v9cでは alias拡充により before=0/after=3（8.8%）まで救済できた�
 | 優先度 | 内容 | 理由 |
 |--------|------|------|
 | ★★★ | **discussion-level n を増やす（n_disc=10〜15）** | 現在のn=5では条件間10pp差を統計的に検定できない。トークンコストは n_disc に対して概ね線形（discussion phaseのみ）なため、全フェーズ再実行よりも discussion+evaluation phase のみの追加実行で対応できる可能性がある |
-| ★★★ | **L6評価方針をOption B（semantic scorer / LLM-judge）に移行** | exact-matchでは3 run連続で0%付近に張り付いており、「真のL6能力」が測定できていない。サンプリング評価でコストを抑えつつ導入する |
-| ★★ | **`report.rb` のTask Type分類ロジックをv9c2の5条件構造に対応させる**（セクション6項目4） | 表示上の不具合だが、将来の自動レポート生成での誤解を防ぐ |
+| ★★★ | **L6 LLM semantic scorer（Option B）を有効化した次 run を実施し、main score への組み込みを判断する** | `SEMANTIC_TASK_TYPES` 実装済み。exact-matchでは3 run連続で0%付近に張り付いており、「真のL6能力」が測定できていない。次 run での LLM 採点結果で信頼性を確認してから main score に含める判断をする |
+| ★★ | **`lecture_only` → `lecture_plus_self_reflection` の条件名変更を次 run で確認** | `SelfReflection` phase を含む条件の命名を更新済み（config / run_experiment_v9c2.rb）。DB への書き込みが新名称になることを次 run で実証する |
 | ★★ | **passive_listenerのmemory_budget設計を再検討** | 58%という低スコアがclass size/discussionとは独立した学習者プロファイル設計の効果であることが明確になった。memory_budgetを増やした場合のスコア変化を確認する価値がある |
 | ★ | **medium_class_discussion_size_8の86%が再現するか確認** | v8/v9b/v9cで「medium最低」、v9c2で「medium最高」と逆転した。3回以上のreplicationで安定するパターンか確認する |
-| ★ | **lecture_only（self-reflection版）とdiscussion条件のトークン正規化スコアを比較** | A6によりtoken budgetは概ね揃ったはずだが、`Token Usage by Phase`の`education_*`行を見るとlecture_only(2,716)はdiscussion条件(35k-46k)より1桁以上小さい。token-normalized scoreでの再評価が望ましい |
+| ★ | **Token-normalized score の解釈を深める（セクション3.3.1）** | lecture_only の教育トークン（2,716）は discussion 条件（35k〜46k）の約1/15。A6 self-reflection 1ターンでは discussion の往復コストに遠く及ばない。v9c3 ではトークン予算均等化の設計変更を検討する |
 
 ---
 

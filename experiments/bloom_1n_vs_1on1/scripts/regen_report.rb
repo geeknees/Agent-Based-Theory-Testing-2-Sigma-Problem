@@ -3,6 +3,7 @@
 
 require_relative '../lib/db'
 require_relative '../lib/report'
+require_relative '../lib/ownership_metrics'
 require 'json'
 require 'sqlite3'
 
@@ -28,6 +29,32 @@ def parse_token_summary_from_report(report_path)
   summary
 end
 
+def readiness_pass_rate_from_db(db, run_id)
+  rows = db.execute(
+    'SELECT answer_correct FROM mastery_check_results WHERE run_id = ?', [run_id]
+  )
+  return 0.0 if rows.empty?
+  correct = rows.count { |r| r['answer_correct'].to_i == 1 }
+  correct.to_f / rows.size
+end
+
+def pre_discussion_snapshots_from_jsonl(run_dir)
+  path = File.join(run_dir, 'memories.jsonl')
+  return [] unless File.exist?(path)
+  snapshots = []
+  File.foreach(path) do |line|
+    entry = JSON.parse(line) rescue next
+    next unless entry['phase'] == 'post_readiness'
+    snapshots << {
+      'learner_id' => entry['learner_id'],
+      'condition'  => entry['condition'],
+      'memory'     => entry['memory'],
+      'diag'       => entry['diag'] || {}
+    }
+  end
+  snapshots
+end
+
 run_dir = ARGV[0]
 unless run_dir && Dir.exist?(run_dir)
   $stderr.puts "Usage: ruby regen_report.rb <run_dir>"
@@ -47,19 +74,50 @@ $stderr.puts "[regen] db_path: #{db_path}"
 token_summary = parse_token_summary_from_report(report_md)
 $stderr.puts "[regen] token phases restored: #{token_summary.keys.join(', ')}"
 
-# Determine experiment from config name
+db = SQLite3::Database.new(db_path)
+db.results_as_hash = true
+
 exp_name = config.dig('experiment', 'name') || ''
+
 exp_meta = if exp_name.include?('v7a') || exp_name.include?('passive')
              { experiment: 'A' }
            elsif exp_name.include?('v7b') || exp_name.include?('order_confused')
              { experiment: 'B' }
+           elsif exp_name.include?('v9c2')
+             ownership_rows       = DB.all_ownership_metrics_by_condition(db, run_id).values.flatten
+             readiness_pass_rate  = readiness_pass_rate_from_db(db, run_id)
+             pre_snapshots        = pre_discussion_snapshots_from_jsonl(run_dir)
+             $stderr.puts "[regen] v9c2: ownership=#{ownership_rows.size}, readiness=#{(readiness_pass_rate*100).round}%, snapshots=#{pre_snapshots.size}"
+             {
+               experiment:               'v9c2',
+               ownership_rows:           ownership_rows,
+               readiness_pass_rate:      readiness_pass_rate,
+               readiness_failed:         readiness_pass_rate < 0.80,
+               pre_discussion_snapshots: pre_snapshots
+             }
+           elsif exp_name.include?('v9c')
+             ownership_rows      = DB.all_ownership_metrics_by_condition(db, run_id).values.flatten
+             readiness_pass_rate = readiness_pass_rate_from_db(db, run_id)
+             pre_snapshots       = pre_discussion_snapshots_from_jsonl(run_dir)
+             $stderr.puts "[regen] v9c: ownership=#{ownership_rows.size}, readiness=#{(readiness_pass_rate*100).round}%, snapshots=#{pre_snapshots.size}"
+             {
+               experiment:               'v9c',
+               ownership_rows:           ownership_rows,
+               readiness_pass_rate:      readiness_pass_rate,
+               readiness_failed:         readiness_pass_rate < 0.80,
+               pre_discussion_snapshots: pre_snapshots
+             }
+           elsif exp_name.include?('v9b')
+             ownership_rows = DB.all_ownership_metrics_by_condition(db, run_id).values.flatten
+             $stderr.puts "[regen] v9b: ownership=#{ownership_rows.size}"
+             { experiment: 'v9b', ownership_rows: ownership_rows }
+           elsif exp_name.include?('v8')
+             { experiment: 'v8' }
            else
              {}
            end
-$stderr.puts "[regen] experiment_meta: #{exp_meta}"
 
-db = SQLite3::Database.new(db_path)
-db.results_as_hash = true
+$stderr.puts "[regen] experiment_meta: #{exp_meta.reject { |k, _| k == :ownership_rows || k == :pre_discussion_snapshots }}"
 
 Report.generate(db, run_id: run_id, output_dir: run_dir,
                 run_config: config, token_summary: token_summary,

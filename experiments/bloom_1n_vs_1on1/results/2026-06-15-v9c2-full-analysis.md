@@ -3,7 +3,7 @@
 **実験バージョン:** bloom_v9c2_classroom_size
 **run_id:** dc1bdd27-6ae0-46be-be74-fc8a974bb328
 **実施日:** 2026-06-15
-**条件:** lecture_only n=4、discussion 4条件 × n_disc=5（population-multiplication design）= 154 学習者
+**条件:** lecture_plus_self_reflection n=4（本 run の DB 記録値: `lecture_only`）、discussion 4条件 × n_disc=5（population-multiplication design）= 154 学習者
 **学習者タイプ:** rule_extractor, edge_case_dropper, order_confused, passive_listener
 **モデル:** claude-sonnet-4-6（全フェーズ）
 **総トークン:** 2,376,593
@@ -26,14 +26,14 @@ v9c の独立監査（[[v9c-methodology-addendum]]）で確認された5つの�
 | **A0**: discussion participant への情報注入 | `contrib_prompt` に学習者memory無し（F3: 「ルールを持っていない」前提の発話） | `learner_memories` を `contrib_prompt`/`reply_prompt` に注入。called_on learner はルールを前提に発話 |
 | **A3**: discussion の反復化 | 各条件で discussion を1回だけ生成（`unique_discussions=1`、F4: 疑似反復） | 各条件で `class_sizes[condition] × n_disc(=5)` 人の学習者を生成し、5回の独立した discussion を実施。集計単位を discussion-level mean に変更 |
 | **A5**: moderator/teacher の複数インスタンス化 | 全 run で `classroom_teacher` が単一インスタンス（F5b） | A3 の各反復に**新規の `classroom_teacher` エージェント**を割り当て（5体）。evaluator の triplication は採点ロジックがLLM分岐に到達しないため意図的に見送り（後述） |
-| **A6**: lecture_only の学習機会公平性 | discussion 相当の学習機会なし（`learning_sessions=0`、F5c） | `SelfReflection` phase を新設。pre-discussion memory を持った状態で個人省察ノートを書かせる（discussion条件と同等のtoken budget） |
+| **A6**: lecture_only の学習機会公平性 | discussion 相当の学習機会なし（`learning_sessions=0`、F5c） | `SelfReflection` phase を新設。pre-discussion memory を持った状態で個人省察ノートを書かせる（追加の学習機会を付与。ただし token budget は discussion 条件の約1/15 — 完全均等ではない、セクション3.3.1参照） |
 | **A8**: L6 (short_rule_induction) の評価方針 | exact-match scorer の artifact が未解決のまま main score に混在（F2） | L6 を main score から除外し、appendix として別掲（Option A採用）。本 run 終了後に Option B（`SEMANTIC_TASK_TYPES` による LLM semantic scorer）を実装済み。main score 除外は次の run まで継続。 |
 
 ### 条件設計（population-multiplication design）
 
 | 条件 | 基本クラスサイズ | called_on | n_disc | 総学習者数 | Ownership（設計値） |
 |------|--------------|-----------|--------|-----------|-------------------|
-| lecture_only | — | — | — | 4 | 高（reflection構造により2.0） |
+| lecture_plus_self_reflection | — | — | — | 4 | 高（reflection構造により2.0） |
 | pair_discussion_size_2 | 2 | 全員 | 5 | 10 | 高 |
 | small_class_discussion_size_4 | 4 | 全員 | 5 | 20 | 高 |
 | medium_class_discussion_size_8 | 8 | 4人 | 5 | 40 | 中 |
@@ -90,13 +90,13 @@ v9c で確認された「I don't have the rules」系の発話は見られない
 
 | 条件 | Avg Ownership Score | % Attempted | Avg Contributions | % Received Feedback |
 |------|--------------------|-----------|--------------------|---------------------|
-| lecture_only | 2.0 | 100% | 1.0 | 0% |
+| lecture_plus_self_reflection | 2.0 | 100% | 1.0 | 0% |
 | pair_discussion_size_2 | **3.0** | 100% | 2.0 | 100% |
 | small_class_discussion_size_4 | **3.0** | 100% | 1.0 | 100% |
 | medium_class_discussion_size_8 | 1.5 | 50% | 0.5 | 50% |
 | large_class_discussion_size_16 | 0.56 | 19% | 0.2 | 19% |
 
-v9b/v9c と同一の順序（pair=small > lecture > medium > large）が再現された。A6 により lecture_only の Ownership が 0.0 → 2.0 に変化した点が最大の差分（後述4.3）。
+v9b/v9c と同一の順序（pair=small > lecture > medium > large）が再現された。A6 により lecture_plus_self_reflection の Ownership が 0.0 → 2.0 に変化した点が最大の差分（後述4.3）。
 
 ---
 
@@ -107,7 +107,7 @@ v9b/v9c と同一の順序（pair=small > lecture > medium > large）が再現�
 | 条件 | n | Attempts | Correct% |
 |------|---|---------|---------|
 | medium_class_discussion_size_8 | 40 | 360 | **86%** |
-| lecture_only | 4 | 36 | 83% |
+| lecture_plus_self_reflection | 4 | 36 | 83% |
 | large_class_discussion_size_16 | 80 | 720 | 81% |
 | pair_discussion_size_2 | 10 | 90 | 80% |
 | small_class_discussion_size_4 | 20 | 180 | 76% |
@@ -126,13 +126,13 @@ v9b/v9c と同一の順序（pair=small > lecture > medium > large）が再現�
 | small_class_discussion_size_4 | 5 | **0.072** | 0.303 |
 | large_class_discussion_size_16 | 5 | **0.099** | 0.279 |
 | pair_discussion_size_2 | 5 | **0.160** | 0.276 |
-| lecture_only | 4 | 0.333 | 0.333 |
+| lecture_plus_self_reflection | 4 | 0.333 | 0.333 |
 
 discussion-level SD は learner-level SD よりも一貫して小さい — これは「discussionインスタンス間のばらつき」よりも「discussion内のlearner間ばらつき」の方が大きいことを意味する。条件平均の差（最大10pp）に対し、discussion-level SDが0.07〜0.16の範囲にあることから、**条件間差は統計的に明確とは言いがたい**（discussion-level n=5は信頼区間を構成するには小さすぎる）。
 
 ### 3.3 タスクタイプ別スコア（L6除外）
 
-| Task Type | Difficulty | large | lecture_only | medium | pair | small |
+| Task Type | Difficulty | large | lecture_plus_self_reflection | medium | pair | small |
 |-----------|-----------|-------|--------------|--------|------|-------|
 | recall | L1 | 74% | 75% | 80% | 80% | 60% |
 | edge_case | L2 | 85% | 88% | 90% | 80% | 80% |
@@ -151,14 +151,14 @@ discussion-level SD は learner-level SD よりも一貫して小さい — こ�
 | 条件 | Correct% | Edu Tokens | Correct / 1k Edu Tokens |
 |------|---------|------------|------------------------|
 | large_class_discussion_size_16 | 81% | 35,035 | **16.67** |
-| lecture_only | 83% | 2,716 | 11.05 |
+| lecture_plus_self_reflection | 83% | 2,716 | 11.05 |
 | medium_class_discussion_size_8 | 86% | 41,580 | 7.46 |
 | small_class_discussion_size_4 | 76% | 42,590 | 3.19 |
 | pair_discussion_size_2 | 80% | 45,775 | 1.57 |
 
-**最大の発見：lecture_only（self-reflection版）のトークン効率は 11.05/1k と、discussion条件（1.57〜16.67/1k）に対して中位に位置する。** large（16.67/1k）が最高効率なのは、1教師が16人をまとめて教育するためトークン/人が最小になるためであり、「educational ROI」として解釈できる。
+**最大の発見：lecture_plus_self_reflection のトークン効率は 11.05/1k と、discussion条件（1.57〜16.67/1k）に対して中位に位置する。** large（16.67/1k）が最高効率なのは、1教師が16人をまとめて教育するためトークン/人が最小になるためであり、「educational ROI」として解釈できる。
 
-**注意：** lecture_only の教育トークン（2,716）は discussion 条件（35k〜46k）の約1/15。A6（self-reflection）によりトークン予算は「揃えた」つもりだったが、self-reflection の1ターンのみでは discussion の往復コストに遠く及ばない。この非対称性が v9c2 の残る confound である（後述セクション6.2）。
+**注意：** lecture_plus_self_reflection の教育トークン（2,716）は discussion 条件（35k〜46k）の約1/15。A6（self-reflection）によりトークン予算は「揃えた」つもりだったが、self-reflection の1ターンのみでは discussion の往復コストに遠く及ばない。この非対称性が v9c2 の残る confound である（後述セクション6.2）。
 
 ### 3.4 Learner Type 別スコア
 
@@ -184,7 +184,7 @@ v9cの「High-confidence wrong: 15%」から大幅改善（-13pp）。Readiness�
 
 | 条件 | blue | green | red | yellow | act_before | sum | inactive | edge_case | debug | mistake |
 |------|------|-------|-----|--------|------------|-----|----------|-----------|-------|---------|
-| lecture_only | 100% | 100% | 100% | 100% | 50% | **100%** | 50% | 75% | 58% | 50% |
+| lecture_plus_self_reflection | 100% | 100% | 100% | 100% | 50% | **100%** | 50% | 75% | 58% | 50% |
 | pair | 100% | 93% | 100% | 93% | 57% | **100%** | 70% | 87% | 80% | 10% |
 | small | 100% | 100% | 100% | 100% | 77% | **100%** | 62% | 83% | 82% | 13% |
 | medium | 100% | 100% | 100% | 97% | 75% | 85% | 71% | 75% | 92% | 13% |
@@ -196,7 +196,7 @@ v9cの「High-confidence wrong: 15%」から大幅改善（-13pp）。Readiness�
 
 | 条件 | Avg Acquired | Avg Lost | Avg Stable |
 |------|:---:|:---:|:---:|
-| lecture_only | 0.1 | 0.0 | 7.8 |
+| lecture_plus_self_reflection | 0.1 | 0.0 | 7.8 |
 | pair | 0.1 | 0.3 | 7.8 |
 | small | 0.1 | 0.2 | 8.1 |
 | medium | 0.1 | 0.1 | 7.9 |
@@ -244,29 +244,29 @@ medium(8人, 86%) > large(16人, 81%) > pair(2人, 80%) > small(4人, 76%)
 
 いずれにせよ、**3 run連続で観察された「構造的パターン」と思われた現象が、Readiness統制下では消失した**ことは、v9c addendum の「再実験でしか直せない」という判断が正しかったことの実証的な裏付けである。
 
-### 4.3 `ownership_effect_supported: false` — A6導入後、lecture_only のOwnership=0前提が崩れた
+### 4.3 `ownership_effect_supported: false` — A6導入後、lecture_plus_self_reflection のOwnership=0前提が崩れた
 
-v9c では `lecture_only` の Ownership=0.0・Score=28%（全条件最低）という構図が `ownership_effect_supported: true` を支えていた。v9c2 では A6（self-reflection phase）の導入により lecture_only の Ownership は **0.0 → 2.0** に変化し、Scoreも83%（discussion条件と同等）となった。
+v9c では `lecture_only` の Ownership=0.0・Score=28%（全条件最低）という構図が `ownership_effect_supported: true` を支えていた。v9c2 では A6（self-reflection phase）の導入により lecture_plus_self_reflection の Ownership は **0.0 → 2.0** に変化し、Scoreも83%（discussion条件と同等）となった。
 
 | 条件 | Ownership | Score |
 |------|-----------|-------|
 | pair | 3.0 | 80% |
 | small | 3.0 | 76% |
-| lecture_only | 2.0 | 83% |
+| lecture_plus_self_reflection | 2.0 | 83% |
 | medium | 1.5 | **86%** |
 | large | 0.56 | 81% |
 
 Ownership と Score の間に単調な関係は見られない（medium はOwnership=1.5で最高スコア、large はOwnership=0.56で2位）。`ownership_effect_supported: false` は妥当な判定である。
 
-ただし重要な注意点として、**A6によって研究問題そのものが再定義されている**（v9c2設計チェックリスト記載の通り）。v9c までの「discussionの有無」という比較軸は、v9c2では「個人内reflection vs 他者とのdiscussion」という比較軸に変わった。つまり v9c2 の lecture_only（83%）は v9c の lecture_only（28%）と数値上は比較できない——後者は「学習機会ゼロ」、前者は「個人内省という形の学習機会」を表しているため、両者は異なる構成概念を測定している。
+ただし重要な注意点として、**A6によって研究問題そのものが再定義されている**（v9c2設計チェックリスト記載の通り）。v9c までの「discussionの有無」という比較軸は、v9c2では「個人内reflection vs 他者とのdiscussion」という比較軸に変わった。つまり v9c2 の lecture_plus_self_reflection（83%）は v9c の lecture_only（28%）と数値上は比較できない——後者は「学習機会ゼロ」、前者は「個人内省という形の学習機会」を表しているため、両者は異なる構成概念を測定している。
 
-**この再定義の下での結論**: 「同程度の学習機会（token budget）が与えられたとき、個人内省（83%）と他者とのdiscussion（76-86%）の間に大差はない」。これは Bloom の2-sigma問題（個別指導 vs 集団授業）に対する一つの実証的knowledge——少なくともこのLLMエージェント環境では、社会的相互作用の付加価値（discussion_added_value）が小さい、という結果である。
+**この再定義の下での結論**: 「追加の学習機会（self-reflection）を与えたとき、個人内省（83%）と他者とのdiscussion（76-86%）の間に大差はない」。これは Bloom の2-sigma問題（個別指導 vs 集団授業）に対する一つの実証的knowledge——少なくともこのLLMエージェント環境・短時間のpost-readiness interactionでは、社会的相互作用の付加価値（discussion_added_value）が小さい、という結果である。なお token budget は 2,716（lecture_plus_self_reflection）vs 35k〜46k（discussion 各条件）と大きな非対称性が残っており（セクション3.3.1）、「同条件での比較」とは言えない点に注意が必要。
 
 ### 4.4 `discussion_added_value: false` の解釈
 
-lecture_only（83%、self-reflectionあり）を基準にすると、discussion条件はpair 80%、small 76%、medium 86%、large 81%——lecture_onlyを明確に上回るのはmediumのみ（+3pp）で、他は同等以下。v9cで観察された「discussion条件が全てlecture_onlyを上回る」(discussion_added_value: true）というパターンは再現しなかった。
+lecture_plus_self_reflection（83%）を基準にすると、discussion条件はpair 80%、small 76%、medium 86%、large 81%——lecture_plus_self_reflectionを明確に上回るのはmediumのみ（+3pp）で、他は同等以下。v9cで観察された「discussion条件が全てlecture_onlyを上回る」(discussion_added_value: true）というパターンは再現しなかった。
 
-これは4.1の解釈と整合する：v9cの`discussion_added_value: true`は、lecture_only条件のOwnership=0・学習機会ゼロという構造的不公平（F5c）の artifact だった可能性が高い。A6でこの不公平を解消した結果、discussionの「付加価値」は事実上消失した。
+これは4.1の解釈と整合する：v9cの`discussion_added_value: true`は、lecture_only条件のOwnership=0・学習機会ゼロという構造的不公平（F5c）の artifact だった可能性が高い。A6でこの不公平を部分的に解消した結果（token budget の非対称性は残存）、discussionの「付加価値」は事実上消失した。
 
 ### 4.5 Learner Type間の差が拡大（v9c比 +30pp）
 
@@ -290,7 +290,7 @@ v9c では learner type 間の最大差は8pp（rule_extractor 67% vs passive_li
 | class_size_effect_supported | false | false |
 | ownership_effect_supported | true | **false** |
 | discussion_added_value | true | **false** |
-| lecture_only Score | 28%（学習機会なし） | 83%（self-reflectionあり、※比較不能） |
+| lecture_plus_self_reflection Score | 28%（v9c: lecture_only、学習機会なし） | 83%（v9c2: self-reflectionあり、※比較不能） |
 | Token/correct answer | 2,875 | 2,099 |
 | 総トークン | 631,955 | 2,376,593 |
 
@@ -302,7 +302,7 @@ v9c では learner type 間の最大差は8pp（rule_extractor 67% vs passive_li
 
 1. **discussion-level n=5** — 各discussion条件で5回の独立反復を確保したが（A3対応）、統計的検定（t検定・分散分析等）を行うには依然小さい。条件間の10pp差は記述統計としては明確だが、推測統計としては「効果あり」と判定するには不十分。
 
-2. **A6によるlecture_onlyの研究問題再定義** — v9c2のlecture_only（83%）はv9cのlecture_only（28%）と直接比較できない。両者は異なる構成概念（「学習機会ゼロ」vs「個人内省」）を測定している。今後のレポートでこの数値を時系列比較する際は必ず注記が必要。
+2. **A6によるlecture_plus_self_reflectionの研究問題再定義** — v9c2のlecture_plus_self_reflection（83%）はv9cのlecture_only（28%）と直接比較できない。両者は異なる構成概念（「学習機会ゼロ」vs「個人内省という追加学習機会」）を測定している。今後のレポートでこの数値を時系列比較する際は必ず注記が必要。
 
 3. **L6 (short_rule_induction) は本 run では知見なし。ただし次 run で LLM 採点が有効化** — Option A（main scoreから除外）を本 run で採用したため、L6の比較知見はない。本 run 終了後に `SEMANTIC_TASK_TYPES = %w[short_rule_induction]` を実装し、次 run から LLM semantic scorer で採点される（appendix参照、セクション7）。main score 除外は次 run での結果検証まで継続。
 
@@ -322,7 +322,7 @@ v9c では learner type 間の最大差は8pp（rule_extractor 67% vs passive_li
 
 | 条件 | L6 Attempts | Correct (exact-match) |
 |------|-------------|------------------------|
-| lecture_only | 4 | 0 |
+| lecture_plus_self_reflection | 4 | 0 |
 | pair_discussion_size_2 | 10 | 0 |
 | small_class_discussion_size_4 | 20 | 0 |
 | medium_class_discussion_size_8 | 40 | 0 |
@@ -341,7 +341,7 @@ v9cでは alias拡充により before=0/after=3（8.8%）まで救済できた�
 | ★★ | **`lecture_only` → `lecture_plus_self_reflection` の条件名変更を次 run で確認** | `SelfReflection` phase を含む条件の命名を更新済み（config / run_experiment_v9c2.rb）。DB への書き込みが新名称になることを次 run で実証する |
 | ★★ | **passive_listenerのmemory_budget設計を再検討** | 58%という低スコアがclass size/discussionとは独立した学習者プロファイル設計の効果であることが明確になった。memory_budgetを増やした場合のスコア変化を確認する価値がある |
 | ★ | **medium_class_discussion_size_8の86%が再現するか確認** | v8/v9b/v9cで「medium最低」、v9c2で「medium最高」と逆転した。3回以上のreplicationで安定するパターンか確認する |
-| ★ | **Token-normalized score の解釈を深める（セクション3.3.1）** | lecture_only の教育トークン（2,716）は discussion 条件（35k〜46k）の約1/15。A6 self-reflection 1ターンでは discussion の往復コストに遠く及ばない。v9c3 ではトークン予算均等化の設計変更を検討する |
+| ★ | **Token-normalized score の解釈を深める（セクション3.3.1）** | lecture_plus_self_reflection の教育トークン（2,716）は discussion 条件（35k〜46k）の約1/15。A6 self-reflection 1ターンでは discussion の往復コストに遠く及ばない。v9c3 ではトークン予算均等化の設計変更を検討する |
 
 ---
 
@@ -351,7 +351,7 @@ v9c2の知見を一言で言えば：
 
 > **「Readiness gateを通過させると、v9cで観察された大きな条件間差・Ownership効果・discussionの優位性は、いずれも消失するか大幅に縮小した」**
 
-これは「v9cの結果が間違っていた」ことを意味するのではなく、**「v9cの条件間差の大部分は教育条件の効果ではなく、事前知識のばらつきという交絡変数の効果だった」**ことを示している。v9c2はこの交絡を統制した初めてのrunであり、その結果「Bloomの2-sigma問題」——クラスサイズ・個別化・社会的相互作用が学習アウトカムを大きく左右するという仮説——は、**少なくともこのLLMエージェント環境・このタスク難易度では支持されなかった**。
+これは「v9cの結果が間違っていた」ことを意味するのではなく、**「v9cの条件間差の大部分は教育条件の効果ではなく、事前知識のばらつきという交絡変数の効果だった」**ことを示している。v9c2はこの交絡を統制した初めてのrunであり、その結果「Bloomの2-sigma問題」——クラスサイズ・個別化・社会的相互作用が学習アウトカムを大きく左右するという仮説——については、**少なくともこのLLMエージェント環境・このタスク難易度・このtoken規模の範囲では、短時間・単回のpost-readiness interactionで大きな主効果は確認されなかった**。
 
 最も堅固な知見は：
 1. Readiness統制（固定講義+4タイプチェック+corrective note）により全体スコアは48%→82%へ改善し、High-confidence wrongは15%→2%に減少した

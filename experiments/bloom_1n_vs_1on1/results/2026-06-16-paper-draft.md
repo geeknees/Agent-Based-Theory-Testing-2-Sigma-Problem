@@ -6,6 +6,8 @@
 **Date:** 2026-06-16
 **Preprint category (intended):** cs.AI, cs.MA
 **Artifact:** Full code, configs, per-run databases, and version-by-version analyses are released with this paper.
+**Status:** Working paper — not peer-reviewed.
+**License:** MIT License (see LICENSE in repository root).
 
 ---
 
@@ -45,13 +47,13 @@ We are explicit about scope (§9): we do not claim LLM agents are human learners
 
 ## 2. Related Work
 
-**LLMs as simulated human subjects.** Recent work uses LLMs to emulate survey respondents, economic-game players, and populations of social agents, and to build "generative agent" societies whose emergent behavior is studied as data. A parallel strand cautions that such simulations can exhibit *caricatured* or distributionally narrow behavior, that prompt and sampling choices drive results, and that apparent realism can mask the absence of the underlying mechanism. Our work contributes a concrete, auditable instance of the latter caution: an agent experiment that produced a large, theory-consistent-looking effect which dissolved under replication and confound control.
+**LLMs as simulated human subjects.** Recent work uses LLMs to emulate survey respondents, economic-game players, and populations of social agents (Argyle et al., 2023; Aher et al., 2023), and to build "generative agent" societies whose emergent behavior is studied as data (Park et al., 2023). A parallel strand cautions that such simulations can exhibit *caricatured* or distributionally narrow behavior, that prompt and sampling choices drive results, and that apparent realism can mask the absence of the underlying mechanism. Our work contributes a concrete, auditable instance of the latter caution: an agent experiment that produced a large, theory-consistent-looking effect which dissolved under replication and confound control.
 
-**Bloom's 2-sigma problem and its modern reception.** Bloom's original claim motivated the "search for group methods as effective as one-to-one tutoring" and is routinely cited in intelligent-tutoring-systems and AI-in-education work. Subsequent human research has complicated the 2-sigma figure (effect sizes for tutoring are typically smaller, and mastery learning, feedback, and time-on-task each contribute). We do not adjudicate the human literature; we use the theory's *structural* form as a target that agent harnesses can manipulate.
+**Bloom's 2-sigma problem and its modern reception.** Bloom's (1984) original claim motivated the "search for group methods as effective as one-to-one tutoring" and is routinely cited in intelligent-tutoring-systems and AI-in-education work. Subsequent human research has complicated the 2-sigma figure (effect sizes for tutoring are typically smaller, and mastery learning, feedback, and time-on-task each contribute). We do not adjudicate the human literature; we use the theory's *structural* form as a target that agent harnesses can manipulate.
 
-**Internal validity in computational experiments.** Pseudoreplication — treating non-independent measurements as independent replicates — is a classic threat in ecology and the behavioral sciences and, we argue, a pervasive and under-recognized threat in agent simulations, where it is tempting to generate one interaction transcript and let many "learner" reads of it act as a sample. Likewise, single-instance "role" agents (one teacher, one judge) confound the manipulated variable with the idiosyncrasies of a particular generated persona. Our F1–F5 taxonomy collects these and other threats into a checklist tailored to LLM-agent pedagogy experiments.
+**Internal validity in computational experiments.** Pseudoreplication — treating non-independent measurements as independent replicates — is a classic threat in ecology and the behavioral sciences (Hurlbert, 1984) and, we argue, a pervasive and under-recognized threat in agent simulations, where it is tempting to generate one interaction transcript and let many "learner" reads of it act as a sample. Likewise, single-instance "role" agents (one teacher, one judge) confound the manipulated variable with the idiosyncrasies of a particular generated persona. Our F1–F5 taxonomy collects these and other threats into a checklist tailored to LLM-agent pedagogy experiments.
 
-**Evaluation artifacts in LLM scoring.** Exact-match grading of free-text model output is known to undercount semantically correct answers. We document a concrete case (our "L6" inductive task scoring 0% for three generations) in which an exact-match scorer, not the agents, produced a null, and we discuss when a semantic judge is required.
+**Evaluation artifacts in LLM scoring.** Exact-match grading of free-text model output is known to undercount semantically correct answers (Rajpurkar et al., 2016). We document a concrete case (our "L6" inductive task scoring 0% for three generations) in which an exact-match scorer, not the agents, produced a null, and we discuss when a semantic judge is required.
 
 ---
 
@@ -222,7 +224,7 @@ The spread across pedagogical conditions is **10 percentage points** (medium 86%
 
 1. **The education effect is real; the social-interaction effect is not.** No-education baselines sat at 0% throughout, so the pipeline does measure learning. But across seven generations the *Bloom-specific* prediction — tutoring/small-group > large-group/lecture — never robustly reproduced; the strongest pro-Bloom signal (v9c) was an artifact of an uncontrolled readiness confound.
 
-2. **The headline numbers are best explained by confounds, not pedagogy — though the comparison is not a clean ablation.** The v9c→v9c2 contrast moved the condition spread from 37 to 10 points and flipped three interpretation flags. We are deliberately careful about the inference: v9c2 changed six remediations *at once* and raised n from 34 to 154, so we cannot attribute the collapse to any single control. The two mechanisms are also partly entangled by design — A3 (replication) inherently increases n, and a 37-point spread built on `unique_discussions = 1` per condition (F4) was, by definition, learner-response variance to a single discussion rather than a stable effect. So "we removed confounds and the effect collapsed" and "we added replication and N=1 noise averaged out" are, here, two descriptions of the *same* remediation rather than rival explanations. What we can claim firmly is the conditional: a spread that does not survive replication and prerequisite control was not safe to report as a pedagogical effect. What we cannot claim is a variable-isolated causal decomposition; a single-control ablation is the obvious next experiment (§9).
+2. **The headline numbers are best explained by confounds, not pedagogy — though the comparison is not a clean ablation.** The v9c→v9c2 contrast moved the condition spread from 37 to 10 points and flipped three interpretation flags. We are deliberately careful about the inference: v9c2 changed six remediations *at once* and raised n from 34 to 154, so we cannot attribute the collapse to any single control. The two mechanisms are also partly entangled by design — A3 (replication) inherently increases n, and a 37-point spread built on `unique_discussions = 1` per condition (F4) was, by definition, learner-response variance to a single discussion rather than a stable effect. So "we removed confounds and the effect collapsed" and "we added replication and N=1 noise averaged out" are, here, two descriptions of the *same* remediation rather than rival explanations. What we can claim firmly is the conditional: a spread that does not survive replication and prerequisite control was not safe to report as a pedagogical effect. What we cannot claim is a variable-isolated causal decomposition; a single-control ablation is the obvious next experiment (§9). We did run one such ablation — `bloom_v9c2_ablation_ndisc1` (run `a551c74d`; n_disc=1, all other v9c2 remediations ON) — and it produced a 25-point condition spread (pair 72% vs. lecture 47%), intermediate between v9c (37pp) and v9c2 (10pp), consistent with replication being a key factor. However, the ablation's readiness gate failed at 53%, so prerequisite knowledge was also not controlled; the two factors changed simultaneously and the result cannot cleanly isolate A3 alone.
 
 3. **Learner heterogeneity is the dominant variable.** When prerequisites are controlled, *who the learner is* (its memory constraints) explains far more variance (38 points) than *how it was taught* (10 points). This is itself a substantive result: in this environment, instructional format is a second-order factor behind learner representation.
 
@@ -239,7 +241,7 @@ We constrain our claims tightly.
 - **Agents are not students.** We measure memory formation and rule application by a single LLM under imposed memory constraints, not human cognition. Nothing here bears directly on whether Bloom's 2-sigma effect holds for people.
 - **One domain, one model family.** All results are on Zarn Tokens with `claude-sonnet-4-6`. The synthetic domain was chosen for prior-knowledge immunity, not ecological validity; generalization across domains and model families is untested.
 - **Residual token asymmetry (the live confound).** A6 equalized the *kind* of learning opportunity for lecture-only but not its token volume (~2.7k vs. ~35–46k). A cleaner future design would equalize compute budget across conditions or report a budget-matched arm.
-- **No single-variable ablation.** The pivotal v9c→v9c2 comparison bundles six remediations and a 4.5× sample-size increase. We can show the inflated effect did not survive control, but not which control was responsible. The natural confirmatory design is a factorial or one-at-a-time ablation (e.g., v9c with *only* the readiness gate fixed, or *only* replication added), which we did not run.
+- **No clean single-variable ablation.** The pivotal v9c→v9c2 comparison bundles six remediations and a 4.5× sample-size increase. We can show the inflated effect did not survive control, but not which control was responsible. We ran one ablation (`bloom_v9c2_ablation_ndisc1`, run `a551c74d`): n_disc=1 with all other v9c2 remediations ON. It produced a 25-point condition spread — intermediate between v9c (37pp, readiness 69%) and v9c2 (10pp, readiness 90%) — which is directionally consistent with replication (A3) being a key driver. But the ablation's readiness gate failed at 53%, meaning prerequisite knowledge was *also* not controlled in this arm. Both factors shifted at once, so the ablation confirms that the bundle matters but cannot isolate A3 alone. A cleaner next design would hold readiness fixed (e.g., by running multiple passes until the gate clears) and vary n_disc independently.
 - **Statistical power.** Even with `n_disc = 5`, five independent discussions per condition do not support strong inferential tests; the 10-point condition spread is best read as "no large effect," not "exactly zero." The same caution applies in principle to the 38-point learner-type spread — we lean on it more heavily only because it is larger and directionally consistent across four generations, not because it is statistically established. We report descriptive statistics and interpretation flags, not p-values, and recommend `n_disc = 10–15` for a confirmatory run.
 - **F1 unresolved.** Corrective feedback remains static; adaptive per-error feedback is unimplemented.
 - **Construct of "learning."** Memory-only evaluation is a deliberate, narrow operationalization; richer constructs (transfer, retention over sessions) are out of scope.
@@ -270,6 +272,7 @@ The broader lesson for the "LLM-as-simulated-subject" program is sobering and, w
 | v9b | bloom_v9b (prod) | 772d2ce7-246a-467e-89ae-b63d02d39c85 | sonnet-4-6 | 34 | 619,507 tokens |
 | v9c | bloom_v9c_classroom_size | b412cfdb-0522-4997-a47e-1738eb414f4b | sonnet-4-6 | 34 | readiness_failed (69%); 631,955 tokens |
 | v9c2 | bloom_v9c2_classroom_size | dc1bdd27-6ae0-46be-be74-fc8a974bb328 | sonnet-4-6 | 154 | readiness 90%; 2,376,593 tokens |
+| ablation | bloom_v9c2_ablation_ndisc1 | a551c74d-aaed-498f-82cb-188b610380a8 | sonnet-4-6 | 34 | n_disc=1; all other v9c2 remediations ON; readiness_failed (53%); 631,243 tokens |
 
 ## Appendix B. Confound → Remediation Map
 
@@ -290,3 +293,19 @@ Each generation has a version-pinned config (`experiments/bloom_1n_vs_1on1/confi
 ---
 
 *Acknowledgement of method:* This paper's negative result was only trustworthy because we audited our own instrument before believing it. We recommend the same discipline — replication counting, single-instance checks, prerequisite gating, and cost normalization — as a default for agent-based theory testing.
+
+---
+
+## References
+
+Aher, G., Arriaga, R. I., & Kalai, A. T. (2023). Using large language models to simulate multiple humans and replicate human subject studies. *Proceedings of the 40th International Conference on Machine Learning (ICML 2023)*, PMLR 202.
+
+Argyle, L. P., Busby, E. C., Fulda, N., Gubler, J. R., Rytting, C., & Wingate, D. (2023). Out of one, many: Using language models to simulate human samples. *Political Analysis*, *31*(3), 337–351. https://doi.org/10.1017/pan.2023.2
+
+Bloom, B. S. (1984). The 2 sigma problem: The search for methods of group instruction as effective as one-to-one tutoring. *Educational Researcher*, *13*(6), 4–16. https://doi.org/10.3102/0013189X013006004
+
+Hurlbert, S. H. (1984). Pseudoreplication and the design of ecological field experiments. *Ecological Monographs*, *54*(2), 187–211. https://doi.org/10.2307/1942661
+
+Park, J. S., O'Brien, J. C., Cai, C. J., Morris, M. R., Liang, P., & Bernstein, M. S. (2023). Generative agents: Interactive simulacra of human behavior. *Proceedings of the 36th Annual ACM Symposium on User Interface Software and Technology (UIST 2023)*. https://doi.org/10.1145/3586183.3606763
+
+Rajpurkar, P., Zhang, J., Lopyrev, K., & Liang, P. (2016). SQuAD: 100,000+ questions for machine comprehension of text. *Proceedings of the 2016 Conference on Empirical Methods in Natural Language Processing (EMNLP 2016)*, 2383–2392. https://doi.org/10.18653/v1/D16-2945

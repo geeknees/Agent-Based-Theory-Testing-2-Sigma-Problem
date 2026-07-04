@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite the working paper."
+type: software
+title: "Agent-Based Theory Testing: Bloom's 2-Sigma Problem"
+version: 1.0.0
+date-released: 2026-07-04
+authors:
+  - family-names: "Kawasaki"
+    given-names: "Masumi"
+repository-code: "https://github.com/geeknees/Agent-Based-Theory-Testing-2-Sigma-Problem"
+url: "https://github.com/geeknees/Agent-Based-Theory-Testing-2-Sigma-Problem"
+license: MIT
+keywords:
+  - LLM agents
+  - agent-based simulation
+  - social-science theory testing
+  - Bloom's 2-sigma problem
+  - educational technology
+  - internal validity
+  - confound control
+preferred-citation:
+  type: unpublished
+  title: "Can LLM Agents Test Social-Science Theory? A Confound-Aware Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in LLM Agents"
+  authors:
+    - family-names: "Kawasaki"
+      given-names: "Masumi"
+  year: 2026
+  date-released: 2026-06-16
+  url: "https://github.com/geeknees/Agent-Based-Theory-Testing-2-Sigma-Problem/blob/main/experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md"

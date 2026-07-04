@@ -3,6 +3,7 @@ message: "If you use this work, please cite the working paper."
 type: software
 title: "Agent-Based Theory Testing: Bloom's 2-Sigma Problem"
 version: 1.0.0
+doi: 10.5281/zenodo.21186083
 date-released: 2026-07-04
 authors:
   - family-names: "Kawasaki"
@@ -25,5 +26,6 @@ preferred-citation:
     - family-names: "Kawasaki"
       given-names: "Masumi"
   year: 2026
+  doi: 10.5281/zenodo.21186083
   date-released: 2026-06-16
   url: "https://github.com/geeknees/Agent-Based-Theory-Testing-2-Sigma-Problem/blob/main/experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md"

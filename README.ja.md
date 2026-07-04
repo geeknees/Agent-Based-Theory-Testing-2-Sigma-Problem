@@ -43,12 +43,12 @@ bundle exec ruby experiments/bloom_1n_vs_1on1/scripts/run_experiment_v9c2.rb \
 
 ## 引用
 
-本成果を利用する場合は、ワーキングペーパーを引用してください。Zenodo DOI は公開時にここへ追記します。
+本成果を利用する場合は、ワーキングペーパーを引用してください。
 
 ```
 Kawasaki, Masumi. "Can LLM Agents Test Social-Science Theory? A Confound-Aware
 Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in
-LLM Agents." Working paper, 2026.
+LLM Agents." Working paper, 2026. https://doi.org/10.5281/zenodo.21186083
 ```
 
 ## ライセンス

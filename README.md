@@ -64,13 +64,12 @@ end-to-end validation before committing to a production run.
 
 ## Citation
 
-If you use this work, please cite the working paper. A Zenodo DOI will be added
-here on release.
+If you use this work, please cite the working paper.
 
 ```
 Kawasaki, Masumi. "Can LLM Agents Test Social-Science Theory? A Confound-Aware
 Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in
-LLM Agents." Working paper, 2026.
+LLM Agents." Working paper, 2026. https://doi.org/10.5281/zenodo.21186083
 ```
 
 ## License

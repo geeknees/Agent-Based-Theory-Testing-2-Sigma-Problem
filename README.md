@@ -1,5 +1,7 @@
 # Agent-Based Theory Testing: Bloom's 2-Sigma Problem
 
+[![DOI](https://zenodo.org/badge/1240576444.svg)](https://doi.org/10.5281/zenodo.21186082)
+
 *English / [日本語](README.ja.md)*
 
 Can LLM agents serve as a genuine *test bed* for a social-science theory? This

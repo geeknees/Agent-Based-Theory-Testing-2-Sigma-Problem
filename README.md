@@ -28,6 +28,11 @@ for genuine replication, and a *readiness gate* for prerequisite control.
 > experiment does not claim LLM agents are human learners; "learning" is
 > operationalized as condition-specific memory formed from interaction
 > transcripts (model weights are not updated).
+>
+> **AI involvement:** The manuscript and the entire research artifact — code,
+> experiments, analyses, and paper text — were produced end-to-end by LLM
+> agents (Anthropic Claude) under the direction and review of the human
+> author, who takes full responsibility for the content.
 
 ## The paper
 
@@ -44,9 +49,12 @@ for genuine replication, and a *readiness gate* for prerequisite control.
 | `experiments/bloom_1n_vs_1on1/config/` | One config per generation (plus haiku `*_smoke.yml` variants) |
 | `docs/superpowers/plans/` | Design plans for each generation (development record) |
 
-Per-run databases and raw run directories (`data/runs/`, `data/*.db`) are
-gitignored; the per-version analysis documents in `results/` carry the reported
-numbers and run identifiers (see the paper's Appendix A run index).
+The raw per-run SQLite databases (`data/*.db`) and run directories
+(`data/runs/`) are included in the repository (the ablation run's database was
+lost — its generated report is preserved verbatim in `results/`). The
+per-version analysis documents in `results/` carry the reported numbers and
+run identifiers (see the paper's Appendix A run index), and every production
+run's headline figures have been re-verified against the released databases.
 
 ## Running the experiment
 
@@ -73,6 +81,9 @@ Kawasaki, Masumi. "Can LLM Agents Test Social-Science Theory? A Confound-Aware
 Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in
 LLM Agents." Working paper, 2026. https://doi.org/10.5281/zenodo.21186083
 ```
+
+(The badge above resolves the concept DOI `10.5281/zenodo.21186082`, which
+always points to the latest version; the citation uses the v1.0.0 version DOI.)
 
 ## License
 

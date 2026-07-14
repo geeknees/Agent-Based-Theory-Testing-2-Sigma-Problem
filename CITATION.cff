@@ -1,6 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this work, please cite the working paper."
 type: software
+abstract: "Agent-based test of Bloom's 2-sigma problem in LLM agents, with a confound-aware methodology. The manuscript and the entire research artifact were produced end-to-end by LLM agents (Anthropic Claude) under the direction and review of the human author."
 title: "Agent-Based Theory Testing: Bloom's 2-Sigma Problem"
 version: 1.0.0
 doi: 10.5281/zenodo.21186083

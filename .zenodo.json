@@ -2,7 +2,7 @@
   "title": "Can LLM Agents Test Social-Science Theory? A Confound-Aware Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in LLM Agents",
   "upload_type": "publication",
   "publication_type": "workingpaper",
-  "description": "Working paper and research artifact for an agent-based test of Bloom's 2-sigma problem in LLM agents. The repository contains the final Markdown and LaTeX paper, experiment code, configs, prompts, synthetic Zarn Tokens domain, tests, version-by-version analyses, and confound-audit artifacts. The central result is negative for this LLM-agent environment: under confound control, pedagogical condition spread collapses while learner cognitive profile dominates outcomes.",
+  "description": "Working paper and research artifact for an agent-based test of Bloom's 2-sigma problem in LLM agents. The repository contains the final Markdown and LaTeX paper, experiment code, configs, prompts, synthetic Zarn Tokens domain, tests, version-by-version analyses, and confound-audit artifacts. The central result is negative for this LLM-agent environment: under confound control, pedagogical condition spread collapses while learner cognitive profile dominates outcomes. The manuscript and the entire research artifact were produced end-to-end by LLM agents (Anthropic Claude) under the direction and review of the human author.",
   "creators": [
     {
       "name": "Kawasaki, Masumi",

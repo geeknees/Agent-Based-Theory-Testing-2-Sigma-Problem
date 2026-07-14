@@ -19,10 +19,11 @@ This is exploratory theory testing and protocol development, not a proof of educ
 | v6 | `run_experiment.rb` | `config/config_v6.yml` | Learner type heterogeneity (7 types with memory constraints) |
 | v7a | `run_experiment_a.rb` | `config/config_v7a.yml` | Mechanism test: passive_listener rescue |
 | v7b | `run_experiment_b.rb` | `config/config_v7b.yml` | Mechanism test: order_confused intervention |
-| v8 | `run_experiment_v8.rb` | `config/config_v8.yml` | Flipped learning: Readiness gate + fixed lecture |
-| v9b | `run_experiment_v9b.rb` | `config/config_v9b.yml` | Classroom size effect (4 sizes × population-multiplication) |
-| v9c | `run_experiment_v9c.rb` | `config/config_v9c.yml` | Readiness-controlled classroom size (v9b + Readiness gate) |
+| v8 | `run_experiment_v8.rb` | `config/config_v8.yml` | Flipped learning: shared prerequisite lecture + mastery check + Phase-3 variants |
+| v9b | `run_experiment_v9b.rb` | `config/config_v9b.yml` | Classroom size effect (4 class sizes, ownership metrics) |
+| v9c | `run_experiment_v9c.rb` | `config/config_v9c.yml` | Readiness-controlled classroom size (v9b + fixed lecture + Readiness gate) |
 | v9c2 | `run_experiment_v9c2.rb` | `config/config_v9c2.yml` | v9c confound fixes (A0/A3/A5/A6/A8), 5 conditions, n=154 |
+| ablation | `run_experiment_v9c2.rb` | `config/config_v9c2_ablation_ndisc1.yml` | n_disc=1 ablation of v9c2 (returns replication to v9c level; all other fixes ON) |
 
 Each version has a corresponding smoke test config (`config/*_smoke.yml`) for fast validation at reduced scale with haiku.
 
@@ -142,17 +143,22 @@ Run output is written to `experiments/bloom_1n_vs_1on1/data/runs/<run_id>/`.
 
 ## Results and Analysis
 
-Human-authored analysis documents are in `results/`. Each version has a corresponding analysis report.
+Analysis documents are in `results/`. Each version has a corresponding analysis report.
 
 | Document | Version |
 |----------|---------|
 | `results/2026-05-16-development-log.md` | v3–v4 development |
+| `results/2026-05-16-v4-analysis.md` | v4 |
+| `results/2026-05-17-v5-analysis.md` | v5 |
+| `results/2026-05-21-v6-analysis.md` | v6 |
 | `results/2026-05-23-v7a-analysis.md` | v7a |
 | `results/2026-05-23-v7b-analysis.md` | v7b |
 | `results/2026-05-29-v8-analysis.md` | v8 |
 | `results/2026-06-04-v9b-full-analysis.md` | v9b |
 | `results/2026-06-06-v9c-full-analysis.md` | v9c |
-| `results/2026-06-15-v9c2-full-analysis.md` | v9c2（最新） |
+| `results/2026-06-15-v9c2-full-analysis.md` | v9c2 |
+| `results/2026-06-21-v9c2-ablation-ndisc1-analysis.md` | v9c2 ablation (n_disc=1)（最新） |
+| `results/2026-06-21-v9c2-ablation-ndisc1-run-report.md` | v9c2 ablation — verbatim run report (primary record) |
 
 Methodology addenda (confound audits, remediation plans) are also in `results/`.
 

@@ -11,6 +11,8 @@ LLM エージェントは社会科学の理論を検証する**実験台**にな
 本論文のより普遍的な貢献は方法論にあります。エージェントによる理論検証のための**交絡を意識したフレームワーク**——5系統の交絡分類(F1–F5)、是正レシピ(A コード)、真の反復のための*population-multiplication* 設計、前提知識統制のための*readiness gate*——です。
 
 > **ステータス:** ワーキングペーパー — 査読は受けていません。これは探索的な理論検証とプロトコル開発であり、いかなる教育的主張の証明でもありません。本実験は LLM エージェントが人間の学習者であるとは主張しません。「学習」は対話トランスクリプトから形成される条件固有のメモリとして操作化されています(モデルの重みは更新しません)。
+>
+> **AI 関与について:** 本論文および研究成果物一式(コード・実験・分析・論文本文)は、人間の著者の指示とレビューのもと、LLM エージェント(Anthropic Claude)がエンドツーエンドで作成したものです。内容の最終責任は人間の著者が負います。
 
 ## 論文
 
@@ -29,7 +31,7 @@ LLM エージェントは社会科学の理論を検証する**実験台**にな
 | `experiments/bloom_1n_vs_1on1/config/` | 世代ごとの設定(haiku 用の `*_smoke.yml` を含む) |
 | `docs/superpowers/plans/` | 各世代の設計プラン(開発記録) |
 
-実行ごとのデータベースと生の実行ディレクトリ(`data/runs/`、`data/*.db`)は gitignore 対象です。報告された数値と run 識別子は `results/` 内の世代別分析ドキュメントに記載されています(論文 Appendix A の run index 参照)。
+実行ごとの生 SQLite データベース(`data/*.db`)と run ディレクトリ(`data/runs/`)はリポジトリに含まれています(ablation run の DB のみ紛失——生成済み run report を `results/` に verbatim で保存)。報告された数値と run 識別子は `results/` 内の世代別分析ドキュメントに記載されており(論文 Appendix A の run index 参照)、全本番 run の主要数値は公開 DB と突合検証済みです。
 
 ## 実験の実行
 
@@ -52,6 +54,8 @@ Kawasaki, Masumi. "Can LLM Agents Test Social-Science Theory? A Confound-Aware
 Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in
 LLM Agents." Working paper, 2026. https://doi.org/10.5281/zenodo.21186083
 ```
+
+(冒頭のバッジは concept DOI `10.5281/zenodo.21186082`(常に最新バージョンを指す)を、引用は v1.0.0 の version DOI を使用しています。)
 
 ## ライセンス
 

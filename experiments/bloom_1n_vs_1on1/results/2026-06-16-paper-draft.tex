@@ -46,7 +46,8 @@ Negative Result on Bloom's 2-Sigma Problem in LLM Agents}
 \noindent\textbf{Status:} Working paper --- not peer-reviewed.\\
 \textbf{License:} MIT License (see LICENSE in repository root).\\
 \textbf{Preprint category (intended):} cs.AI, cs.MA\\
-\textbf{Artifact:} Full code, configs, per-run databases, and version-by-version analyses are released with this paper.
+\textbf{Artifact:} Full code, configs, version-by-version analyses, per-run SQLite databases, and raw run directories are released with this paper (the ablation run's database was lost; its generated run report is released verbatim instead). The released analysis documents carry all reported numbers and run identifiers, and the headline figures of every production run have been re-verified against the released databases.\\[0.5em]
+\textbf{AI involvement statement:} This manuscript and the underlying research artifact --- the experiment code, the design iterations across all generations, the analyses, and the paper text itself --- were produced end-to-end by LLM agents (Anthropic Claude; the experiments and drafting principally used \texttt{claude-sonnet-4-6}), operating under the direction of the human author, who framed the research question, approved each generation's design, and reviewed the outputs. The human author takes full responsibility for the content. The same model family also serves as the experimental subjects; we discuss this reflexivity in \S9.
 
 \hrule\vspace{1em}
 
@@ -73,7 +74,7 @@ earlier generation (v9c, 37-point spread) is, we argue, largely attributable to 
 uncontrolled prerequisite-knowledge confound (we are candid in \S8--\S9 that this
 attribution rests on a single before/after comparison, not an ablation).  Second, and
 more durable, a \textbf{confound-aware methodology}: an independent audit of our own
-pipeline surfaced five families of confound (F1--F5, two of which decompose into
+pipeline surfaced five families of confound (F1--F5, one of which decomposes into
 sub-confounds, for seven specific threats in total) --- static corrective feedback, an
 exact-match scoring artifact, missing context injection into discussion agents,
 pseudoreplication, and single-instance role agents plus learning-budget asymmetry ---
@@ -375,7 +376,12 @@ cost as well as accuracy.
 % -----------------------------------------------------------------------
 \section{The Experimental Arc (v3--v9c)}
 
-We summarize seven production generations.  All production runs use
+We summarize the production generations v4--v9c below; v3 was the pilot that
+established the memory-only protocol (\S4.2), and the confound-controlled v9c2 is
+treated separately in \S7.  (The ``seven generations'' of the title counts design
+generations --- v3, v4, v5, v6, v7, v8, and the v9 series --- with v7a/v7b as two
+experiments within one generation and v9b/v9c/v9c2 as iterations of one.)  All
+production runs use
 \texttt{claude-sonnet-4-6} for every agent role (one v9b smoke run used
 \texttt{claude-haiku-4-5}).  The no-education baseline scored 0\% wherever it was
 run, confirming that the memory-only design removes the prior-knowledge ceiling; we
@@ -470,8 +476,9 @@ v9c & \texttt{b412cfdb} & 34 & pair \textbf{65\%}, small 57\%, large 52\%, mediu
 \end{tabular}
 \end{table}
 
-v9b introduced the \textbf{population-multiplication} design (instantiating
-2/4/8/16-learner classes) and an explicit ownership metric, and found neither a
+v9b introduced the class-size design (instantiating 2/4/8/16-learner classes; not
+to be confused with the \emph{population-multiplication} replication design of
+\S6, which arrives only in v9c2) and an explicit ownership metric, and found neither a
 monotone class-size effect nor an ownership--outcome correlation: lecture-only tied
 the smallest discussion for the top score, and memory ``delta'' from discussion was
 $\sim$0 (agents acquired essentially no new rule knowledge from discussing).  v9c
@@ -586,7 +593,8 @@ numbers,'' and only a replication-and-independence audit surfaced them.
 % -----------------------------------------------------------------------
 \section{v9c2: The Confound-Controlled Experiment}
 
-v9c2 applies A0/A3/A4/A5/A6/A8 together and re-asks the v9c questions under control.
+v9c2 applies A0/A3/A5/A6/A8 together (A4 --- learner-profile diversity --- was
+verified as already satisfied from v8 on) and re-asks the v9c questions under control.
 (run\_id \texttt{dc1bdd27}; \texttt{claude-sonnet-4-6}; 154 learners; 2,376,593
 tokens.)
 
@@ -711,9 +719,11 @@ points.
     are candidate hypotheses for human study, stated here as agent-environment
     findings only.
 
-  \item \textbf{Cost asymmetry is large and usually ignored.}  Tutoring and large
-    discussions cost 4--24$\times$ the tokens of lecture/self-reflection for
-    equal-or-worse accuracy.  Any agent-based pedagogy claim should report
+  \item \textbf{Cost asymmetry is large and usually ignored.}  In v9c2, discussion
+    conditions spent 13--17$\times$ the education-phase tokens of
+    lecture/self-reflection (35--46k vs.\ 2.7k) for equal-or-worse accuracy, and in
+    earlier generations one-to-one tutoring cost ${\sim}4.3\times$ the classroom
+    lecture (v5: 35,095 vs.\ 8,180 tokens).  Any agent-based pedagogy claim should report
     cost-normalized outcomes; otherwise the ``expensive condition'' can look better
     simply because it did more.
 \end{enumerate}
@@ -758,6 +768,18 @@ We constrain our claims tightly.
     \texttt{n\_disc = 10--15} for a confirmatory run.
   \item \textbf{F1 unresolved.}  Corrective feedback remains static; adaptive
     per-error feedback is unimplemented.
+  \item \textbf{Stochasticity is not seed-controlled.}  The learner-type constraints
+    (probabilistic edge-case dropping, rule-order shuffling) and LLM sampling run
+    without fixed RNG seeds, so runs are not bit-reproducible.  Analyses regenerate
+    deterministically from each run's frozen outputs, but an exact re-run will
+    differ; seeded constraint application is planned for the next generation.
+  \item \textbf{Reflexivity of AI authorship.}  As disclosed in the front matter,
+    this study was designed, executed, and written by LLM agents of the same model
+    family as its experimental subjects, under human direction and review.  We flag
+    this as a potential source of shared blind spots --- the auditor and the audited
+    share a substrate --- and note that the confound audit (\S6) was itself
+    agent-executed; independent human replication of the audit is the obvious
+    external check.
   \item \textbf{Construct of ``learning.''}  Memory-only evaluation is a deliberate,
     narrow operationalization; richer constructs (transfer, retention over sessions)
     are out of scope.
@@ -789,9 +811,10 @@ The broader lesson for the ``LLM-as-simulated-subject'' program is sobering and,
 hope, constructive: an agent experiment can run cleanly, produce plausible numbers,
 and still be measuring the wrong thing.  Negative results obtained \emph{after}
 explicit internal-validity controls are more informative than positive results
-obtained before them.  We release all code, configurations, per-run databases, and
-version-by-version analyses so that the confound checklist --- and the cautionary
-tale --- can be reused.
+obtained before them.  We release all code, configurations, version-by-version
+analyses, and per-run databases (the ablation run's database was lost; its
+generated run report is released verbatim) so that the confound checklist ---
+and the cautionary tale --- can be reused.
 
 % -----------------------------------------------------------------------
 \appendix

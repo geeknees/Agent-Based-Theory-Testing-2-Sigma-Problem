@@ -1,0 +1,39 @@
+{
+  "experiment": {
+    "name": "bloom_v9c_smoke",
+    "domain": "zarn_tokens",
+    "lecture_only_n": 2,
+    "class_sizes": {
+      "pair_discussion_size_2": 2,
+      "small_class_discussion_size_4": 2,
+      "medium_class_discussion_size_8": 4,
+      "large_class_discussion_size_16": 4
+    },
+    "called_on_counts": {
+      "medium_class_discussion_size_8": 2,
+      "large_class_discussion_size_16": 2
+    },
+    "learner_types": [
+      "rule_extractor",
+      "passive_listener"
+    ],
+    "eval_tasks_file": "eval_tasks_v8.json",
+    "readiness_tasks_file": "readiness_check_tasks_v9c.json",
+    "fixed_lecture_file": "fixed_lecture_v9c.md",
+    "ceiling_threshold": 0.9
+  },
+  "models": {
+    "teacher": "claude-haiku-4-5-20251001",
+    "tutor": "claude-haiku-4-5-20251001",
+    "learner": "claude-haiku-4-5-20251001",
+    "memory_summarizer": "claude-haiku-4-5-20251001",
+    "problem_solver": "claude-haiku-4-5-20251001",
+    "evaluator": "claude-haiku-4-5-20251001"
+  },
+  "paths": {
+    "prompts": "experiments/bloom_1n_vs_1on1/prompts",
+    "domain": "experiments/bloom_1n_vs_1on1/domains/zarn_tokens",
+    "output": "experiments/bloom_1n_vs_1on1/data",
+    "db": "experiments/bloom_1n_vs_1on1/data/experiment_v9c_smoke.db"
+  }
+}

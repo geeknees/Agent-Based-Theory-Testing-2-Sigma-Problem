@@ -66,6 +66,9 @@
 - v2: それに加えて、タスクプロンプトそのものにルールが渡されため、別経路でも天井になった
 - v3: 評価タスクの定義そのものをlearner_prompt(学習者に見せる、ルールなし)とhidden_rules(採点者だけが見る)に分けた、初めて条件間の差が出た
 
+before: https://github.com/geeknees/Agent-Based-Theory-Testing-2-Sigma-Problem/blob/99d4c5422d1afe737f982dbd8c208e7e3d510960/experiments/bloom_1n_vs_1on1/domains/zarn_tokens/eval_tasks_v2.json#L6
+after: https://github.com/geeknees/Agent-Based-Theory-Testing-2-Sigma-Problem/blob/99d4c5422d1afe737f982dbd8c208e7e3d510960/experiments/bloom_1n_vs_1on1/domains/zarn_tokens/eval_tasks_v3.json#L6
+
 4. 何が言えないか: 学習効果の差の検証などは後まわし
 5. 次に何をすべきか: 学習効果の差の検証について実装に入る
 

@@ -42,6 +42,18 @@
 | 2 | low | 分析ドキュメント §6.3「tutoring session の coverage 不均一性」は仮説として書かれているが、**直接証拠が存在する**: `1on1/low/applies_modifiers_before_activation` のメモリ edge_cases に「黄色のルールは不明。次回のセッションで確認事項として扱う」が明記されており、4 exchange が Yellow に到達しなかったことが学習者自身の言葉で残っている。所見1と合わせて、v5 の L1/L6 床効果は「タスクが難しすぎる」のではなく「**Yellow が教えられていない**」で説明できる | **fixed**(2026-07-25): §6.3 に証拠段落を追記 |
 | 3 | low | §6.2「プロファイルは演技にすぎない」の**実物証拠**: hetero_classroom の high/none と low/applies_modifiers のメモリは rules・mistakes・strategy がほぼ同一内容(文言の微差のみ)。一方 1on1 では high と low で明確な質差がある(high は「最後の緑は0点でも青を有効にする条件は満たす」まで到達、low は「緑は常に有効」という**誤り**を含み Yellow 欠落)。→ プロファイルは**学習者側の能力差としては機能せず、tutor 側の適応経路でのみ効いている**。この解釈は論文 §3(l.118)で「v6 で representation level に移して heterogeneity を real にした」として既に正しく扱われており、論文側の修正は不要 | **wont-fix**: §6.2 が既に同旨を記述しており結論に影響しない |
 
+### 所見3 追記(2026-07-31、v6 査読中にソースで確認)
+
+観察(メモリが似ていた)だけでなく、**実装上の直接証拠**がある。`lib/profiles.rb` のプロファイル注入は非対称:
+
+- `to_tutor_context`(tutor 向け) — ability・interest・**misconception(`CRITICAL:` 付きで内容まで明示)**・learning_style・attention の5項目すべて
+- `to_learner_context`(学習者本人向け) — **interest と attention の2項目のみ**
+
+つまり `ability: low` の学習者も、`misconception: applies_modifiers_before_activation` の学習者も、
+**その事実を自分では一度も知らされていない**。日誌 05-17 の「LLM の基礎能力は変わらないためプロファイルが
+機能しない」という解釈は、半分は**実装の非対称性の結果**である。加えて tutor は誤概念の正解を
+プロンプトで直接受け取っているため、v5 の tutoring は「診断」を経ずに答えを知った状態だった。
+
 論文への波及: **なし**。論文 §5 は v5 の §5.4 帰属を引用しておらず、逆に「misconception correction は score と decoupled」(v6 証拠)を採用済み。所見1・2の影響範囲は v5 分析ドキュメント内に限定される。
 
 ## 確認したこと(masumi 記入)

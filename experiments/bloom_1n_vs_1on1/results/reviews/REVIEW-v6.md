@@ -1,6 +1,6 @@
 # v6 人間セルフ査読記録
 
-査読者: masumi / 日付: 2026-07-30 / 所要: ____
+査読者: masumi / 日付: 2026-07-30 / 所要: 30min
 プロトコル: `docs/templates/human-review-protocol.md`(重み: 軽)
 位置づけ: v5 の反省を受け、learner heterogeneity を**プロンプト上のロールプレイから post-LLM
 メモリ制約(ハード)に転換**。7種の learner type を導入し、tutoring を「診断→修正→再テスト」に変更。

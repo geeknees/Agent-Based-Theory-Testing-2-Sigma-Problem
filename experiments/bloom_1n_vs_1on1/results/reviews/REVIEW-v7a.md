@@ -1,6 +1,6 @@
 # v7a 人間セルフ査読記録
 
-査読者: masumi / 日付: 2026-08-09 / 所要: ____
+査読者: masumi / 日付: 2026-08-09 / 所要: 40min
 プロトコル: `docs/templates/human-review-protocol.md`(重み: 軽 — **講義長交絡の確認は必修**)
 位置づけ: v6 で passive_listener が hetero_classroom(1/8)より 1on1(3/8)で高得点だった件の機構切り分け。
 全学習者を passive_listener に揃え、「強制インタラクション」条件(classroom_forced_checkin)を新設して

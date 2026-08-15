@@ -1,6 +1,6 @@
 # v7b 人間セルフ査読記録
 
-査読者: masumi / 日付: 2026-08-09 / 所要: ____
+査読者: masumi / 日付: 2026-08-09 / 所要: 30min
 プロトコル: `docs/templates/human-review-protocol.md`(重み: 軽)
 位置づけ: v6 で order_confused が hetero_classroom(7/8)より 1on1(5/8)で低得点だった件の機構切り分け。
 全学習者を order_confused に揃え、「手続きスキャフォールド」条件を新設して

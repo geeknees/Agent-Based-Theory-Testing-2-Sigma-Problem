@@ -1,8 +1,8 @@
 # セルフ査読 持ち越し一覧(監査・論文査読の入口で参照)
 
-最終更新: 2026-09-05(ablation 査読完了時点)
-対象: v1–v3 / v4 / v5 / v6 / v7a / v7b / v8 / v9b / v9c / v9c2 / ablation の11件が完了。
-残り2件(**F1–F5 監査文書**、**論文 §6–§9**)はいずれもフル査読。
+最終更新: 2026-09-12(監査査読完了時点)
+対象: v1–v3 / v4 / v5 / v6 / v7a / v7b / v8 / v9b / v9c / v9c2 / ablation / **監査** の12件が完了。
+残り1件(**論文 §6–§9**、フル査読)。
 
 > 各世代の査読で「その世代だけでは決められない」と判断し **deferred** とした項目。
 > 監査文書と論文本体の記述にまたがるため、この2件の査読でまとめて文面を確定する。
@@ -23,10 +23,18 @@
 
 | # | 出典 | 内容 | 該当 |
 |---|------|------|------|
-| **B1** | v8 所見3 | **監査表 F4 の分母に共通講義が混入している。** v8 を `sessions/unique` = WCD 8/2・SGD 8/3・1on1 8/5 と数え3条件すべて「部分的」と評価しているが、この分母には全条件共通の Phase 1 講義(4行複製)が入っている。**Phase 3 だけで数えると WCD 1/4・SGD 2/4・1on1 4/4** で、WCD は v4–v7 の classroom と同一の深刻度、1on1 は完全反復 | `2026-06-08-v4-v9c-replication-confound-audit-table.md` の v8 行 |
+| ~~**B1**~~ **解消** | v8 所見3 / 監査 所見2 | **監査表 F4 の分母に共通講義が混入している。** v8 を `sessions/unique` = WCD 8/2・SGD 8/3・1on1 8/5 と数え3条件すべて「部分的」と評価しているが、この分母には全条件共通の Phase 1 講義(4行複製)が入っている。**Phase 3 だけで数えると WCD 1/4・SGD 2/4・1on1 4/4** で、WCD は v4–v7 の classroom と同一の深刻度、1on1 は完全反復 | **2026-09-12 修正済み**: v8 の3行を Phase3 内訳つきに書き換え、まとめ表も ✓該当(WCD 1/4) に |
 | **B2** | v9c 所見2 | **interpretation flags が閾値テストであることの明示。** `class_size_effect_supported` は完全単調のみ true(偶然一致 1/24)、`discussion_added_value` は1条件が baseline+5pp を超えれば true。**フラグ名が主張を先取りしている** | `lib/report.rb:876-905`、および flags を引用する各文書 |
 | **B3** | ablation 所見4 | **run report に存在しない条件の表が残る。** Ceiling Effect Summary の Tutoring 列(全 0%)、Score by Learner Profile の `unknown` 行、v4 期の `classroom_advantage_under_homogeneity`。<br>あわせて **L6 Appendix のハードコード文字列が同一表内で3つの矛盾する説明**をしている(`lib/report.rb:584-603`) | `lib/report.rb`。ablation は DB 紛失で再生成不可のため**注記対応の見込み** |
-| **B4** | v9c2 所見1 | **スモーク run と本番 run の取り違え。** v9c2 §2.1 は「v9c」として自身のスモーク DB の値を引用していた(修正済み)。**監査表の run_id 対応表に、スモーク DB を含めた完全な対応を載せるべきか**を監査査読で判断 | 監査表の run_id 対応表 |
+| ~~**B4**~~ **解消** | v9c2 所見1 | **スモーク run と本番 run の取り違え。** v9c2 §2.1 は「v9c」として自身のスモーク DB の値を引用していた(修正済み)。**監査表の run_id 対応表に、スモーク DB を含めた完全な対応を載せるべきか**を監査査読で判断 | **2026-09-12 修正済み**: run_id 対応表にスモーク取り違えの注意書きを追記 |
+
+### 論文査読へ引き継ぐ B 項目
+
+| # | 内容 | 該当 |
+|---|------|------|
+| **B2** | **interpretation flags が閾値テストであることの明示。** `class_size_effect_supported` は完全単調のみ true(偶然一致 1/24)、`discussion_added_value` は1条件が baseline+5pp を超えれば true。**フラグ名が主張を先取りしている** | `lib/report.rb:876-905`、flags を引用する各文書 |
+| **B3** | **run report の残骸と L6 Appendix の矛盾。** 存在しない条件の表(tutoring 列・`unknown` 行・v4 期の heterogeneity 判定)が残る。L6 Appendix はハードコード文字列により**同一表内で3つの矛盾する説明**を出力する | `lib/report.rb`。ablation は DB 紛失で再生成不可のため**注記対応の見込み** |
+| **B5** | **F1/F2/F3/F5c の横断表が存在しない。** 監査文書のまとめ表は F4/F5a/F5b の3項目のみ(2026-09-12 に範囲を明記済み)。**F2 と F3 は複数世代を汚染しており F4 と同等以上に重い**が、世代別マッピングがどこにもない | 監査文書、または論文 §9 |
 
 ## C. 解決済み(記録のみ)
 
@@ -35,6 +43,7 @@
 | C1 | **F3(討論に lesson/memory 非注入)は v9c2 で解消**。`run_experiment_v9c2.rb:251-261` が `learner_memories:` を渡している。v9b・v9c は未修正のまま(該当世代の分析ドキュメントに注記済み) |
 | C2 | **F4(pseudoreplication)は v9c2 で解消**。全 discussion 条件で unique discussions = 5/5 |
 | C3 | **F5b(単一インスタンス)は v9c2 で部分解消**。`classroom_teacher` 1体 → 20体。evaluator の複数化は no-op として意図的に見送り(理由はコードと整合) |
+| C4 | **監査文書を v4–v9c2 に拡張済み**(2026-09-12)。v9c2・ablation の行を全表に追加し、F4 の「✅解消」を記録。**是正が監査文書に書き戻された** |
 
 ## D. 査読とは別に残っている宿題
 

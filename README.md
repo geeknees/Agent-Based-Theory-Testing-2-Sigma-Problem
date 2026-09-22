@@ -94,11 +94,12 @@ If you use this work, please cite the working paper.
 ```
 Kawasaki, Masumi. "Can LLM Agents Test Social-Science Theory? A Confound-Aware
 Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in
-LLM Agents." Working paper, 2026. https://doi.org/10.5281/zenodo.21186083
+LLM Agents." Working paper, 2026. https://doi.org/10.5281/zenodo.21186082
 ```
 
-(The badge above resolves the concept DOI `10.5281/zenodo.21186082`, which
-always points to the latest version; the citation uses the v1.0.0 version DOI.)
+(That is the concept DOI, which always resolves to the latest version. Each
+release also gets its own version DOI — v1.0.0 is `10.5281/zenodo.21186083` —
+if you need to cite a specific one.)
 
 ## License
 

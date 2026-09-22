@@ -3,6 +3,12 @@
 \usepackage[T1]{fontenc}
 \usepackage[margin=1in]{geometry}
 \usepackage{booktabs}
+\usepackage[round,authoryear]{natbib}
+% Long snake_case identifiers and file paths appear inline throughout; without this
+% they are unbreakable boxes and overrun the margin.
+\usepackage[htt]{hyphenat}
+% Let TeX relax interword spacing only on lines it cannot otherwise set.
+\setlength{\emergencystretch}{3em}
 \usepackage[hidelinks,colorlinks=false]{hyperref}
 \usepackage{amsmath}
 \usepackage{listings}
@@ -314,7 +320,7 @@ theory-driven learner types:
 \centering
 \caption{Learner-type memory constraints applied after memory generation.}
 \label{tab:learner-types}
-\begin{tabular}{@{}lrrrr@{}}
+\begin{tabular}{@{}lp{2.0cm}p{2.3cm}p{2.3cm}p{1.9cm}@{}}
 \toprule
 Type & Memory budget & Edge-case retention & Rule-order retention & Asks questions \\
 \midrule
@@ -941,7 +947,7 @@ and the cautionary tale --- can be reused.
 \caption{All production runs, v4 through ablation.}
 \label{tab:run-index}
 \footnotesize
-\begin{tabular}{@{}llp{3.8cm}lrp{4cm}@{}}
+\begin{tabular}{@{}lp{2.9cm}p{3.4cm}lrp{3.6cm}@{}}
 \toprule
 Gen & Experiment name & run\_id & Model & $n$ & Notes \\
 \midrule
@@ -960,17 +966,27 @@ ablation & bloom\_v9c2\_ablation\_ndisc1       & \texttt{a551c74d-...} & sonnet-
 \end{tabular}
 \end{table}
 
-Full 36-character run UUIDs: v4 \texttt{19b39e20-6901-4c90-8f3c-e24b352f23ae};
-v5 \texttt{02070b48-308f-4bf3-bac9-2cc76563ade9};
-v6 \texttt{cd5d2f0e-8036-41d6-b755-b6c6ba08ab3e};
-v7a \texttt{dd2fd888-0e7b-40a9-ad2a-abb6e9b8b6d1};
-v7b \texttt{32ffaa49-2d26-4edd-9cf8-ecdf1d019c78};
-v8 \texttt{ef107ef9-bee8-420e-a94f-31aee4a56c37};
-v9b-smoke \texttt{9b599c12-ab43-42f8-8af4-de26551b3981};
-v9b-prod \texttt{772d2ce7-246a-467e-89ae-b63d02d39c85};
-v9c \texttt{b412cfdb-0522-4997-a47e-1738eb414f4b};
-v9c2 \texttt{dc1bdd27-6ae0-46be-be74-fc8a974bb328};
-ablation \texttt{a551c74d-aaed-498f-82cb-188b610380a8}.
+Full 36-character run UUIDs (the table above abbreviates them):
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+Gen & run\_id \\
+\midrule
+v4 & \texttt{19b39e20-6901-4c90-8f3c-e24b352f23ae} \\
+v5 & \texttt{02070b48-308f-4bf3-bac9-2cc76563ade9} \\
+v6 & \texttt{cd5d2f0e-8036-41d6-b755-b6c6ba08ab3e} \\
+v7a & \texttt{dd2fd888-0e7b-40a9-ad2a-abb6e9b8b6d1} \\
+v7b & \texttt{32ffaa49-2d26-4edd-9cf8-ecdf1d019c78} \\
+v8 & \texttt{ef107ef9-bee8-420e-a94f-31aee4a56c37} \\
+v9b (smoke) & \texttt{9b599c12-ab43-42f8-8af4-de26551b3981} \\
+v9b (prod) & \texttt{772d2ce7-246a-467e-89ae-b63d02d39c85} \\
+v9c & \texttt{b412cfdb-0522-4997-a47e-1738eb414f4b} \\
+v9c2 & \texttt{dc1bdd27-6ae0-46be-be74-fc8a974bb328} \\
+ablation & \texttt{a551c74d-aaed-498f-82cb-188b610380a8} \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 \section{Confound $\to$ Remediation Map}
 \label{appendix:confounds}
@@ -979,7 +995,7 @@ ablation \texttt{a551c74d-aaed-498f-82cb-188b610380a8}.
 \centering
 \caption{Confound taxonomy and remediations.}
 \label{tab:confound-map}
-\begin{tabular}{@{}llp{4cm}p{4.5cm}@{}}
+\begin{tabular}{@{}lp{4.1cm}p{3.1cm}p{5.1cm}@{}}
 \toprule
 Confound & Description & Affected generations & Remediation \\
 \midrule
@@ -1032,34 +1048,34 @@ a default for agent-based theory testing.
 \bibliographystyle{apalike}
 \begin{thebibliography}{99}
 
-\bibitem[Aher et al., 2023]{aher2023}
+\bibitem[Aher et al.(2023)]{aher2023}
 Aher, G., Arriaga, R.~I., \& Kalai, A.~T. (2023).
 \newblock Using large language models to simulate multiple humans and replicate
   human subject studies.
 \newblock \emph{Proceedings of the 40th International Conference on Machine
   Learning (ICML 2023)}, PMLR~202.
 
-\bibitem[Argyle et al., 2023]{argyle2023}
+\bibitem[Argyle et al.(2023)]{argyle2023}
 Argyle, L.~P., Busby, E.~C., Fulda, N., Gubler, J.~R., Rytting, C., \&
   Wingate, D. (2023).
 \newblock Out of one, many: Using language models to simulate human samples.
 \newblock \emph{Political Analysis}, \textbf{31}(3), 337--351.
 \newblock \url{https://doi.org/10.1017/pan.2023.2}
 
-\bibitem[Bloom, 1984]{bloom1984}
+\bibitem[Bloom(1984)]{bloom1984}
 Bloom, B.~S. (1984).
 \newblock The 2 sigma problem: The search for methods of group instruction as
   effective as one-to-one tutoring.
 \newblock \emph{Educational Researcher}, \textbf{13}(6), 4--16.
 \newblock \url{https://doi.org/10.3102/0013189X013006004}
 
-\bibitem[Hurlbert, 1984]{hurlbert1984}
+\bibitem[Hurlbert(1984)]{hurlbert1984}
 Hurlbert, S.~H. (1984).
 \newblock Pseudoreplication and the design of ecological field experiments.
 \newblock \emph{Ecological Monographs}, \textbf{54}(2), 187--211.
 \newblock \url{https://doi.org/10.2307/1942661}
 
-\bibitem[Park et al., 2023]{park2023}
+\bibitem[Park et al.(2023)]{park2023}
 Park, J.~S., O'Brien, J.~C., Cai, C.~J., Morris, M.~R., Liang, P., \&
   Bernstein, M.~S. (2023).
 \newblock Generative agents: Interactive simulacra of human behavior.
@@ -1067,7 +1083,7 @@ Park, J.~S., O'Brien, J.~C., Cai, C.~J., Morris, M.~R., Liang, P., \&
   Software and Technology (UIST 2023)}.
 \newblock \url{https://doi.org/10.1145/3586183.3606763}
 
-\bibitem[Rajpurkar et al., 2016]{rajpurkar2016}
+\bibitem[Rajpurkar et al.(2016)]{rajpurkar2016}
 Rajpurkar, P., Zhang, J., Lopyrev, K., \& Liang, P. (2016).
 \newblock {SQuAD}: 100,000+ questions for machine comprehension of text.
 \newblock \emph{Proceedings of the 2016 Conference on Empirical Methods in

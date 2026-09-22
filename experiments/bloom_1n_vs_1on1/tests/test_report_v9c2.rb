@@ -31,9 +31,12 @@ class TestL6ExclusionSection < Minitest::Test
     assert_includes section, 'l6_induction_02'
   end
 
-  def test_l6_rows_section_includes_llm_scoring_note
+  # Was: asserted the section always says LLM judge scores were used. That claim was
+  # hardcoded and contradicted the per-row note on the same table, so the assertion is
+  # now that the section names the path these rows were actually scored by.
+  def test_l6_rows_section_names_the_scoring_path
     section = Report.send(:l6_rows_section, all_rows)
-    assert_includes section, 'LLM'
+    assert_includes section, 'exact-match'
   end
 
   def test_l6_rows_section_explains_scorer_artifact
@@ -55,6 +58,52 @@ class TestL6ExclusionSection < Minitest::Test
       make_row(task_id: 'l4_calc_04', answer_correct: false)
     ]
     assert_equal rows, Report.send(:core_rows, rows)
+  end
+end
+
+# The appendix used to print two incompatible claims about the same column —
+# a header saying the numbers came from an LLM judge and a per-row note saying
+# they were exact-match. It now reports the path the rows were actually scored by.
+class TestL6ScoringPathReporting < Minitest::Test
+  def l6_row(auto_scored:, answer_correct:, condition: 'pair_discussion_size_2')
+    score = { 'auto_scored' => auto_scored, 'total' => 14 }
+    score['answer_correct'] = answer_correct unless answer_correct == :absent
+    {
+      'learner_id'     => 'l-001',
+      'condition'      => condition,
+      'task_id'        => 'l6_induction_02',
+      'task_type'      => 'short_rule_induction',
+      'answer_correct' => (answer_correct == :absent ? nil : answer_correct),
+      'score_json'     => JSON.dump(score)
+    }
+  end
+
+  def test_exact_match_rows_are_labelled_exact_match
+    section = Report.send(:l6_rows_section,
+                          [l6_row(auto_scored: true, answer_correct: false)])
+    assert_includes section, 'exact-match'
+    refute_includes section, 'Results below use LLM judge scores'
+  end
+
+  def test_semantic_rows_without_recorded_verdict_are_flagged_as_unmeasured
+    section = Report.send(:l6_rows_section,
+                          [l6_row(auto_scored: false, answer_correct: :absent)])
+    assert_includes section, 'not recorded'
+    assert_includes section, 'not measured'
+  end
+
+  def test_semantic_rows_without_verdict_do_not_report_a_correct_count
+    section = Report.send(:l6_rows_section,
+                          [l6_row(auto_scored: false, answer_correct: :absent)])
+    refute_match(/\|\s*0\s*\|/, section,
+                 'an unrecorded verdict must not be printed as a zero score')
+  end
+
+  def test_semantic_rows_with_recorded_verdict_are_counted
+    section = Report.send(:l6_rows_section,
+                          [l6_row(auto_scored: false, answer_correct: true)])
+    assert_includes section, 'LLM semantic'
+    assert_includes section, '1'
   end
 end
 

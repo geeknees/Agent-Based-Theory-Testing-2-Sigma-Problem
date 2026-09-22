@@ -52,10 +52,12 @@ methodology-addendum(v4-v6 / v7a-v7b / v8 / v9b / v9c)。
 
 **持ち越し B1〜B4 の状態**(`reviews/CARRIED-OVER.md`):
 - **B1**(監査表 F4 の分母) → **解消**(所見2 として修正)
-- **B2**(interpretation flags が閾値テスト) → **未着手**。`lib/report.rb` と flags を引用する
-  各文書に関わるため**論文査読へ持ち越す**
-- **B3**(run report の残骸・L6 Appendix の矛盾) → **未着手**。`lib/report.rb` の修正が必要で、
-  ablation は DB 紛失により再生成不可。**論文査読で注記対応を判断**
+- **B2**(interpretation flags が閾値テスト) → **処置済み**(2026-09-22、論文査読)。
+  論文 Appendix C に3フラグの判定式を追記した
+- **B3**(run report の残骸・L6 Appendix の矛盾) → **処置済み**(2026-09-22)。
+  論文 front matter の Artifact 記述に注記を追加し、`lib/report.rb` の L6 付録も
+  実際の採点経路を判定する実装へ修正した(TDD。テスト4件追加)。
+  ablation の run report は DB 紛失のため再生成できず、注記での対応となる
 - **B4**(スモーク run と本番 run の取り違え) → **解消**(run_id 対応表にスモーク注意書きを追記)
 
 ## 確認したこと(masumi 記入)

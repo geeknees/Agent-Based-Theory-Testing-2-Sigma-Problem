@@ -17,7 +17,17 @@ tutoring:  avg 20.00
 
 ### 原因
 
-評価プロンプトにルールをそのまま埋め込んでいた。
+> **【2026-09-22 セルフ査読で訂正】** 本節は当初、v1 の天井を「評価プロンプトへのルール埋め込み」に
+> 帰していたが、一次資料と矛盾する。v1 の `eval_tasks.json` のタスク文にルールは無く、v1 の solver
+> プロンプト(git `dbfb948`)にも無い。solver フェーズ(git `8e48630`)は memory とタスク文だけを渡す。
+> **v1 の実際の機構は、メモリ語数制限が無かったこと**(`max_memory_words` は v2 で導入)により、
+> 教師の講義 → トランスクリプト → 無制限メモリという経路でメモリがルールブックをほぼ逐語で
+> 保持していたことである(DB の v1 `memory_json` で確認)。加えて no_education ベースラインが無かった。
+> **評価プロンプトへのルール逐語埋め込みは v2 の `eval_tasks_v2.json` から**であり、下に引用する例も
+> v2 の `l1_recall_01` と一致する。論文 §4.2 は 2026-07-19 に両経路を区別する形へ修正済み。
+> 詳細は `results/reviews/REVIEW-v1-v3.md` 所見3。
+
+以下は **v2** で評価プロンプトにルールをそのまま埋め込んでいた例である。
 
 ```
 Rules:
@@ -56,7 +66,15 @@ instruction: task['prompt']
 instruction: task['learner_prompt']
 ```
 
-これにより v3 スモークテスト（n=1）で no_education が 0%、classroom/tutoring が 13〜50% という有意義な分散が初めて観測された。
+これにより v3 スモークテスト（n=1）で no_education が低水準、classroom/tutoring が 13〜50% という有意義な分散が初めて観測された。
+
+> **【2026-09-22 セルフ査読で訂正】** 旧版は v3 スモークの no_education を「0%」としていたが、
+> DB 実測は **13%(1/8)** である。唯一の正答は、後に無効と判明する counterexample 形式の L5 で、
+> 主張の構造に対する純粋な論理的推論だけで真偽を判定でき、ドメインのルール知識を必要としなかった。
+> そのため本番 run ではすべて debugging 形式の L5 に差し替えている。
+> 本番 run(v4 以降)の no_education は DB 上すべて 0% である。
+> 論文 §5 は 2026-07-19 に "0% in every production run (v4 onward)" へ限定済み。
+> 詳細は `results/reviews/REVIEW-v1-v3.md` 所見1。
 
 ---
 

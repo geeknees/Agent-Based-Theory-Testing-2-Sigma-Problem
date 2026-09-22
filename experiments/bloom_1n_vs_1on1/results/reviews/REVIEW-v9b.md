@@ -87,8 +87,11 @@ Red scores 0; doubles the score of the immediately following token.
   なお本世代では `scripts/rescore_l6.rb` による再採点も実施済みだが **before=0 / after=0** で
   1件も回復していない(別名リストが v9c の言い回しに合わせて作られているため)。
   → **v9b の真の L6 正答率は不明のまま**であり、「0%」でないことだけが分かっている
-- 生データ読了: ____
-- 垂直貫通: ____
+- 生データ読了(2026-08-22): 上記 L6 の8件に加え、アドエンダム §4 が採取した討論参加者の初発話
+  (4条件すべての「I don't actually know the rules」型)を確認
+- 垂直貫通: 所見1について アドエンダム §4 → `lib/phases/sized_discussion.rb`(`learner_memories[lid]` が
+  nil のときメモリ無しの context を組む)→ `scripts/run_experiment_v9b.rb:201`(`learner_memories:` 引数が無い)
+  → `run_experiment_v9c2.rb:251-261`(修正の所在)まで4層を貫通
 
 ## 信頼で受け入れたこと(未検証)
 

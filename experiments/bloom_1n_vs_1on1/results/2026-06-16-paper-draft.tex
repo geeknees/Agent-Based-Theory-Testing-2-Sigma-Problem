@@ -46,7 +46,7 @@ Negative Result on Bloom's 2-Sigma Problem in LLM Agents}
 \noindent\textbf{Status:} Working paper --- not peer-reviewed.\\
 \textbf{License:} MIT License (see LICENSE in repository root).\\
 \textbf{Preprint category (intended):} cs.AI, cs.MA\\
-\textbf{Artifact:} Full code, configs, version-by-version analyses, per-run SQLite databases, and raw run directories are released with this paper (the ablation run's database was lost; its generated run report is released verbatim instead). The released analysis documents carry all reported numbers and run identifiers, and the headline figures of every production run have been re-verified against the released databases.\\[0.5em]
+\textbf{Artifact:} Full code, configs, version-by-version analyses, per-run SQLite databases, and raw run directories are released with this paper (the ablation run's database was lost; its generated run report is released verbatim instead --- note that the report generator emits a fixed set of sections, so that file contains tables for conditions the ablation did not run, including a tutoring column that is 0\% throughout and learner-profile rows reading \texttt{unknown}; its L6 appendix also carries boilerplate that describes the scoring path inconsistently, see \S9). The released analysis documents carry all reported numbers and run identifiers, and the headline figures of every production run have been re-verified against the released databases.\\[0.5em]
 \textbf{AI involvement statement:} This manuscript and the underlying research artifact --- the experiment code, the design iterations across all generations, the analyses, and the paper text itself --- were produced end-to-end by LLM agents (Anthropic Claude; the experiments and drafting principally used \texttt{claude-sonnet-4-6}), operating under the direction of the human author, who framed the research question, approved each generation's design, and reviewed the outputs. The human author takes full responsibility for the content. The same model family also serves as the experimental subjects; we discuss this reflexivity in \S9.
 
 \hrule\vspace{1em}
@@ -330,8 +330,10 @@ Type & Memory budget & Edge-case retention & Rule-order retention & Asks questio
 \texttt{example\_memorizer} --- were defined in v6 and used in early generations.)
 Constraints are applied mechanically: each edge-case memory item is dropped
 independently with probability $1 - \text{retention}$; with probability $1 -
-\text{rule\_order\_retention}$ the ordered rule list is shuffled (degrading
-procedural knowledge); memory is then trimmed to the word budget by dropping
+\text{rule\_order\_retention}$ the stored rule list is shuffled (this reorders the
+\emph{listed} rules only; as \S9 records, it does \textbf{not} degrade the solving
+procedure, which the memory keeps in a separate \texttt{strategy} field the
+constraint never touches); memory is then trimmed to the word budget by dropping
 lowest-priority fields first; and a \texttt{passive\_listener} with question
 probability 0 never speaks in discussion (its turn is skipped with no model call).
 These constraints make learner heterogeneity \emph{real} at the representation level
@@ -433,10 +435,14 @@ Three findings recur and survive into the later generations.
     difference---and should be read as a hypothesis, not an estimate.)
   \item[(iii)] \textbf{Misconception correction is decoupled from score}: v6 tutoring
     corrected diagnosed misconceptions 75\% of the time yet did not outscore the
-    classroom, because correcting a \emph{propositional} misconception (``Blue is
-    always active'') does nothing for a \emph{procedural} deficit (shuffled rule
-    order).  This decoupling reappeared in v7b (generic tutoring: 100\% correction,
-    47\% accuracy) and v8.
+    classroom, and the decoupling reappeared in v7b (generic tutoring: 100\%
+    correction, 47\% accuracy) and v8.  We previously explained this by saying that
+    correcting a \emph{propositional} misconception (``Blue is always active'') does
+    nothing for a \emph{procedural} deficit; our own later audit of the learner-type
+    constraints rules that explanation out (\S9), since the \texttt{order\_confused}
+    constraint never produced a procedural deficit to begin with.  The decoupling
+    itself is a stable observation across three generations; \textbf{we do not have an
+    identified mechanism for it}, and we no longer offer one.
 \end{enumerate}
 
 The v6 ``homogeneous classroom 94\%'' is the one apparent win for group instruction,
@@ -596,12 +602,18 @@ phase} giving lecture-only learners a structured individual-reflection session -
 candidly, not in token volume; see \S7 and \S9).
 
 The cross-version audit table (released as an artifact) records, for every generation
-v4--v9c, the run-id$\leftrightarrow$database mapping, the \texttt{sessions} vs.\
+v4--v9c2, the run-id$\leftrightarrow$database mapping, the \texttt{sessions} vs.\
 \texttt{unique\_discussions} count per condition (F4), and the single-instance/diversity
-status (F5).  Its summary matrix shows F4 present in every generation except v8
-(partial) and F5b present in all --- i.e., the two structural confounds were
-\emph{baked in from the first experiment} and silently shaped six generations of
-results before the audit caught them.  This is the cautionary core of the paper: the
+status (F5).  Its summary matrix shows \textbf{F4 present in every generation up to
+and including v9c, and resolved (5 independent discussions per condition) in v9c2};
+F5b is present in all of v4--v9c and partially remediated in v9c2.  The two structural
+confounds were therefore \emph{baked in from the first experiment} and silently shaped
+six generations of results before the audit caught them.  (v8 initially appeared to be
+a partial exception; separating the shared prerequisite lecture from the manipulated
+phase showed its whole-class condition was a full instance of F4, with one discussion
+shared by four learners, while its one-to-one condition was fully replicated.
+Counting \texttt{learning\_sessions} without distinguishing phases had compressed the
+difference.)  This is the cautionary core of the paper: the
 confounds were invisible at the level of ``the code runs and produces plausible
 numbers,'' and only a replication-and-independence audit surfaced them.
 
@@ -661,8 +673,8 @@ baseline) did \textbf{not} survive readiness control and replication.
 \textbf{38 points} (\texttt{edge\_case\_dropper} 96\% vs.\ \texttt{passive\_listener}
 58\%) --- nearly four times the condition spread.  On the same $n$ that makes us
 cautious about the condition contrast, this larger and directionally stable gap (the
-\texttt{passive\_listener}, the most memory-constrained type, is lowest in v6, v9b,
-v9c, and v9c2) is the more defensible comparative claim: the single largest
+\texttt{passive\_listener}, the most memory-constrained type, is lowest in v6, v9b
+and v9c2, and tied for lowest in v9c) is the more defensible comparative claim: the single largest
 determinant of downstream accuracy is the cognitive profile (the memory constraint),
 not the pedagogical format.  The v9c learner-type spread had been only 8 points; with
 the larger, readiness-controlled sample the profile differences resolve far more
@@ -763,10 +775,11 @@ points.
     tutoring compresses the outcome distribution (raising the weakest type, lowering
     the strongest) without raising the mean.  (ii) \emph{Correction-outcome
     decoupling}: high misconception-correction rates do not translate into higher
-    accuracy, because correcting a stated misconception leaves procedural deficits
-    (and unrelated task demands) untouched.  Both held across multiple generations and
-    are candidate hypotheses for human study, stated here as agent-environment
-    findings only.
+    accuracy.  Both held across multiple generations and are candidate hypotheses for
+    human study, stated here as agent-environment findings only.  We state (ii) as an
+    observation without a mechanism: the explanation we previously gave --- that
+    correction leaves \emph{procedural} deficits untouched --- does not survive our
+    audit of the learner-type constraints (\S9).
 
   \item \textbf{Cost asymmetry is large and usually ignored.}  In v9c2, discussion
     conditions spent 13--17$\times$ the education-phase tokens of
@@ -840,6 +853,22 @@ We constrain our claims tightly.
     to take effect; consequently \textbf{no generation reported here has a validated
     L6 measurement}, and the L6 figures in all run reports should be read as ``not
     measured,'' not as ``0\%.''
+  \item \textbf{One of the four learner types was never instantiated.}
+    \texttt{order\_confused} is defined by \texttt{rule\_order\_retention = 0.2},
+    implemented as shuffling the stored \texttt{rules} array.  That array is a list of
+    facts; the solving procedure lives in a separate \texttt{strategy} field, which the
+    constraint does not touch.  Inspecting v7b --- a generation run entirely with this
+    type --- all twelve learners, including the eight in conditions that received no
+    procedure instruction, retained the correct ``check activation, then apply
+    modifiers'' order in \texttt{strategy}.  The intended procedural deficit therefore
+    never existed, which also explains why the run's procedure-order error detector
+    reported 0\% in every condition.  Two consequences: any claim resting on a
+    \emph{procedural} deficit is withdrawn (\S5.1, \S8), and v7b tested interventions
+    against a deficit no learner had.  The v9c2 learner-type spread is unaffected ---
+    its endpoints are \texttt{edge\_case\_dropper} (96\%) and
+    \texttt{passive\_listener} (58\%), with \texttt{order\_confused} in between at
+    77\% --- but the type's label overstates what was manipulated.  Operationalizing it
+    properly means constraining the field where the construct actually lives.
   \item \textbf{F1 unresolved.}  Corrective feedback remains static; adaptive
     per-error feedback is unimplemented.
   \item \textbf{Stochasticity is not seed-controlled.}  The learner-type constraints
@@ -945,8 +974,8 @@ Confound & Description & Affected generations & Remediation \\
 \midrule
 F1  & Static corrective feedback           & v8--v9c2        & (open) \\
 F2  & Exact-match scoring artifact (L6)    & v8, v9b, v9c    & A8: exclude L6 + semantic judge \\
-F3  & Discussion context not injected      & v8 (partial), v9b, v9c & A0: inject learner memory \\
-F4  & Pseudoreplication (unique\_discussions=1) & v4--v9c (v8 partial) & A3: population-multiplication, n\_disc=5 \\
+F3  & Discussion context not injected      & v8, v9b, v9c & A0: inject learner memory (v9c2) \\
+F4  & Pseudoreplication (unique\_discussions=1) & v4--v9c & A3: population-multiplication, n\_disc=5 (v9c2) \\
 F5a & Learner-profile homogeneity          & v4, v7a, v7b (scoped) & A4: 4 balanced types (satisfied v8+) \\
 F5b & Single-instance role agents          & v4--v9c         & A5: per-discussion teacher instances \\
 F5c & Learning-budget asymmetry (lecture-only) & v9b, v9c   & A6: self-reflection phase \\
@@ -963,7 +992,21 @@ Each generation has a version-pinned config
 database via \texttt{scripts/regen\_report.rb}.  Audit scripts
 \texttt{check\_replication.py} (counts \texttt{unique\_discussions} per condition)
 and \texttt{check\_confounds.py} (single-instance and profile-diversity checks)
-reproduce the cross-version audit table.  The Zarn Token reference lecture,
+reproduce the cross-version audit table. Note that
+\texttt{check\_replication.py} hashes \texttt{learning\_sessions} without
+distinguishing phases, so on designs with a shared prerequisite lecture the
+per-condition count must be read per phase (\S6).
+
+The interpretation flags quoted in \S7 are threshold tests computed in
+\texttt{lib/report.rb}; their definitions matter for reading a \texttt{false}.
+\texttt{class\_size\_effect\_supported} is true only if the discussion conditions are
+\emph{exactly} monotone decreasing in size --- a single inversion makes it false, and
+four conditions land in exact order by chance about 4\% of the time, so
+\texttt{false} is the expected value under both a null and a noisy real effect.
+\texttt{discussion\_added\_value} is true if \emph{any} discussion condition exceeds
+the baseline by more than 5 points, so a single small condition can set it.
+\texttt{ownership\_effect\_supported} compares concordant against discordant pairs
+across the conditions.  None is a significance test.  The Zarn Token reference lecture,
 evaluation tasks, and rubric are included under \texttt{domains/zarn\_tokens/}.
 
 % -----------------------------------------------------------------------

@@ -688,12 +688,46 @@ points.
 \section{Cross-Cutting Findings}
 
 \begin{enumerate}
-  \item \textbf{The education effect is real; the social-interaction effect is not.}
-    No-education baselines sat at 0\% throughout, so the pipeline does measure
-    learning.  But across seven generations the \emph{Bloom-specific} prediction ---
-    tutoring/small-group $>$ large-group/lecture --- never robustly reproduced; the
-    strongest pro-Bloom signal (v9c) was an artifact of an uncontrolled readiness
-    confound.
+  \item \textbf{The education effect is real.}  No-education baselines sat at 0\%
+    throughout, so the pipeline does measure learning: agents that receive no
+    education phase cannot answer at all, and every educated condition lands far
+    above them.  Whatever else follows, the instrument detects the presence of
+    teaching.
+
+  \item \textbf{Class size does not predict outcome.}  The ordering is non-monotone
+    in every generation that varied it --- v9b: lecture-only $=$ pair (60\%) $>$
+    small 48\% $>$ large 47\% $>$ medium 45\%; v9c: pair 65\% $>$ small 57\% $>$
+    large 52\% $>$ medium 40\%; v9c2: medium (8 learners) 86\% $>$ large (16) 81\%
+    $>$ pair (2) 80\% $>$ small (4) 76\%.  Neither ``smaller is better'' nor its
+    inverse survives.  The \texttt{medium} condition was the \emph{lowest} discussion
+    condition in three consecutive generations and the \emph{highest} in the
+    controlled one, which is itself evidence that the earlier pattern tracked
+    confounds rather than class size.
+
+  \item \textbf{Ownership does not predict outcome.}  Ownership --- the degree to
+    which a learner is called on and must articulate its reasoning --- was designed
+    to vary from 0.56 (large class, 19\% of learners speak) to 3.0 (pair, all speak),
+    and the manipulation verifiably worked: speaking rates match the design in every
+    generation.  Outcome does not follow it.  In v9c2 the highest-scoring condition
+    is \texttt{medium} at ownership 1.5 and the second-highest is \texttt{large} at
+    0.56, while both ownership-3.0 conditions (pair, small) score below them.  The
+    learner that speaks most is not the learner that scores best.
+
+  \item \textbf{Discussion adds no measurable value over individual reflection.}
+    Once lecture-only learners were given a matched learning opportunity (A6's
+    self-reflection phase), they scored 83\% --- above three of the four discussion
+    conditions.  Only \texttt{medium} exceeds them, by 3 points, below the 5-point
+    margin the harness requires to flag added value.  The v9c pattern in which
+    \emph{every} discussion condition towered over a 28\% lecture baseline did not
+    survive either readiness control or the removal of the learning-budget
+    asymmetry.
+
+    Findings 2--4 are the substance of the negative result: the three structural
+    variables Bloom's account rests on --- group size, individual engagement, and
+    social interaction itself --- each failed to predict learning in the one
+    generation where prerequisites were controlled and discussions were genuinely
+    replicated.  We state them separately because they were tested separately, and
+    because a null reported only as a flag value is easy to lose.
 
   \item \textbf{The headline numbers are best explained by confounds, not pedagogy
     --- though the comparison is not a clean ablation.}  The v9c$\to$v9c2 contrast
@@ -781,6 +815,31 @@ We constrain our claims tightly.
     four generations, not because it is statistically established.  We report
     descriptive statistics and interpretation flags, not $p$-values, and recommend
     \texttt{n\_disc = 10--15} for a confirmatory run.
+  \item \textbf{Readiness items overlap the teaching material.}  Two of the four
+    readiness checks---\texttt{rc\_recall\_01} (\texttt{[Yellow, Green]} $\to$ 7) and
+    \texttt{rc\_edge\_case\_01} (\texttt{[Red, Blue]} $\to$ 0)---appear verbatim as
+    worked examples, answers included, in the fixed lecture.  Those same two are the
+    highest-passing items in both generations that used the gate (v9c: edge\_case
+    100\%, recall 68\%, against procedure\_order 59\% and rule\_interaction 50\%;
+    v9c2: 100\% and 91\% against 85\% and 85\%).  We do not claim the overlap
+    \emph{drives} the pass rate---the signature does not reproduce in the evaluation
+    tasks, where a likewise-overlapping item (\texttt{l2\_edge\_case\_01}) scored
+    17.6\% in v9c---but it does weaken ``genuinely held the prerequisites'' (\S7)
+    for edge\_case and recall specifically, since those items can be passed by
+    reproducing an answer the lecture supplied.  A clean gate would draw its items
+    from sequences absent from the teaching material.
+  \item \textbf{The L6 semantic judge's verdict never reaches the score.}  A8 has two
+    halves: exclude L6 from the main score, and route it to an LLM judge.  The first
+    half works.  The second does not reach the reported numbers:
+    \texttt{answer\_correct} is set only on the exact-match path
+    (\texttt{lib/scorer.rb}); the LLM branch in \texttt{lib/phases/evaluator.rb}
+    never sets it.  In the ablation's smoke database, L6 rows carry
+    \texttt{auto\_scored = 0} and judge totals of 11--20 out of 20 while
+    \texttt{answer\_correct} is null---so every downstream count reads them as wrong,
+    and the L6 appendix still prints 0.  The fix is a few lines but requires a re-run
+    to take effect; consequently \textbf{no generation reported here has a validated
+    L6 measurement}, and the L6 figures in all run reports should be read as ``not
+    measured,'' not as ``0\%.''
   \item \textbf{F1 unresolved.}  Corrective feedback remains static; adaptive
     per-error feedback is unimplemented.
   \item \textbf{Stochasticity is not seed-controlled.}  The learner-type constraints

@@ -16,10 +16,11 @@ LLM エージェントは社会科学の理論を検証する**実験台**にな
 
 ## 論文
 
-- **Markdown:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md)
-- **LaTeX:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex)
+- **日本語版(Markdown):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md)
+- **英語版(Markdown):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md)
+- **英語版(LaTeX):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex)
 
-※ 論文本文は英語です。
+※ 日本語版は英語版の訳です。数値・run 識別子・引用文献は同一で、差異が生じた場合は英語版を正とします。
 
 ## 研究日誌
 

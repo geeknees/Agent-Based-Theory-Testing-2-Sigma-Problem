@@ -1,5 +1,10 @@
 # v9c Experiment 結果考察レポート（本番 run）— Readiness-Controlled Classroom Size & Ownership
 
+> **本レポートを読む前に:** 2日後に作成された [[2026-06-08-v9c-methodology-addendum]] が
+> L6 再採点・F1（corrective_note の静的テンプレート）・F3（討論への lesson/memory 非注入）・
+> F4（pseudoreplication）・F5 を記録しており、**本レポートの §4 の解釈の一部を否定している**。
+> あわせて 2026-08-29 のセルフ査読注記（§3.6・§4.1・§4.2 の引用ブロック）を参照のこと。
+
 **実験バージョン:** bloom_v9c_classroom_size  
 **run_id:** b412cfdb-0522-4997-a47e-1738eb414f4b  
 **実施日:** 2026-06-06  
@@ -146,6 +151,17 @@ Learner type 最大差：8pp（rule_extractor vs passive_listener）— v9b（21
 
 ### 3.6 Interpretation Flags
 
+> **〔2026-08-29 セルフ査読〕 これらのフラグはすべて閾値テストであり、有意性検定ではない**
+> (`lib/report.rb:876-905` で確認)。
+> - `class_size_effect_supported` — 討論4条件のスコアが**サイズ順に完全単調減少**か否か。
+>   1箇所でも逆転すれば false。4条件が偶然に完全単調となる確率は 1/24 ≈ 4% であり、
+>   **効果があってもノイズがあれば false になる**。「false = サイズ効果なし」とは読めない
+> - `discussion_added_value` — 討論条件のうち**1つでも** baseline + 5pp を超えれば true。
+>   v9c では **n=2 の pair(65%)** が 27.5% + 5pp を超えたことで true になっている
+> - `ownership_effect_supported` — 5条件10ペアの concordant > discordant。有意性の検定ではない
+>
+> 「supported」「false」の語をそのまま結論に書き写さないこと。
+
 | Flag | Value |
 |------|-------|
 | readiness_failed | **true** |
@@ -159,6 +175,26 @@ Learner type 最大差：8pp（rule_extractor vs passive_listener）— v9b（21
 ## 4. 考察
 
 ### 4.1 【最重要発見】lecture_only が最低スコア（28%）に転落
+
+> **⚠️ 2026-08-29 セルフ査読 — 以下の仮説A・B・Cはいずれも不要である**
+>
+> DB を全数確認した結果、lecture_only の 27.5% は**基底値カバレッジの欠損**で機械的に説明できる。
+> **4名全員の `rules` に Green の基底値 2 と Blue の基底値 5 が入っていない**
+> （Yellow=7 は全員にある）。Green・Blue については「いつ有効か」だけがあり「何点か」がない。
+>
+> | 学習者 | `examples` | `l1_recall_01`（正解 14）の解答 |
+> |---|---|---|
+> | 3be77dda | `[Green, Red, Yellow, Blue] → 2+0+14+5 = 21` あり | **19**（確信度 0.95、`used_memory` は活性化ルール3本のみ） |
+> | 9cd2a41a | 同上あり | **19**（確信度 0.95） |
+> | 08d31d69 | **空** | **16** |
+> | b946cfc9 | **空** | **棄権**（確信度 0.3） |
+>
+> これで `l1_recall_01` 0/4 と `l3_rule_interaction_01` 0/4 が説明できる。
+> 前2名は導出元を持ちながら使わず、後2名はそもそも参照先が存在しなかった。
+> したがって「固定講義が LLM 生成講義より浅い」「n=4 のサンプリング誤差」
+> 「固定テキストは記憶に残りにくい」という3仮説を立てる必要はない。
+>
+> なおこれは v4・v5・v6・v7a・v7b に続く**6世代連続の同一機構**である。
 
 v9b では lecture_only = pair = 60%（全条件トップタイ）だったが、v9c では **lecture_only が全条件最低（28%）** となった。これは v9c 最大の驚きであり、設計変更の影響を示す重要なシグナルである。
 
@@ -177,6 +213,22 @@ v9b の lecture_only は n=4 で 60% だった。v9c の lecture_only も n=4 �
 LLM 生成講義は問答的・インタラクティブな説明スタイルで記憶に残りやすい一方、固定テキストは「読む」だけで終わりやすく、記憶への定着が弱い可能性がある。lecture_only 条件はこの差を最も受けやすい。
 
 ### 4.2 Discussion 条件がこぞって lecture_only を上回った意味
+
+> **⚠️ 2026-08-29 セルフ査読 — 本節の解釈は成立しない**
+>
+> 1. `discussion_added_value: true` は閾値テストであり（§3.6 の注記）、**n=2 の pair 1条件**が
+>    baseline + 5pp を超えたことで true になっている
+> 2. 比較の下端である lecture_only は、[[2026-06-08-v9c-methodology-addendum]] §6 が
+>    「F5c の影響下にあり**他条件と直接比較できない**」と結論している条件である
+> 3. 討論条件は **F3（participant prompt に lesson も learner memory も非注入）**の影響下にあり、
+>    アドエンダム §4 が4条件すべてで「ルールを持っていない」発話を採取している。
+>    `scripts/run_experiment_v9c.rb:219` の `SizedDiscussion.run` 呼び出しに
+>    `learner_memories:` 引数がない（**v9c2 で修正済み**）
+> 4. lecture_only の 27.5% は §4.1 の注記のとおり基底値欠損で説明される
+>
+> したがって「インタラクティブな議論が記憶定着を助ける」というメカニズムの示唆、まして
+> 「**Bloom の 2-sigma 問題に対するひとつの答え**」という記述は、本 run からは導けない。
+> 論文 §4 が本世代の 37pp を `readiness_failed` を理由に**保留した判断は正しい**。
 
 ```
 pair(65%) > small(57%) > large(52%) > medium(40%) > lecture_only(28%)

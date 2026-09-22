@@ -2,7 +2,7 @@
   "title": "Can LLM Agents Test Social-Science Theory? A Confound-Aware Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in LLM Agents",
   "upload_type": "publication",
   "publication_type": "workingpaper",
-  "description": "Working paper and research artifact for an agent-based test of Bloom's 2-sigma problem in LLM agents. The repository contains the final Markdown and LaTeX paper, experiment code, configs, prompts, synthetic Zarn Tokens domain, tests, version-by-version analyses, and confound-audit artifacts. The central result is negative for this LLM-agent environment: under confound control, pedagogical condition spread collapses while learner cognitive profile dominates outcomes.",
+  "description": "Working paper and research artifact for an agent-based test of Bloom's 2-sigma problem in LLM agents. The repository contains the paper in Markdown, LaTeX and PDF plus a Japanese translation, the experiment code, configs, prompts, the synthetic Zarn Tokens domain, tests, version-by-version analyses, and confound-audit artifacts. The central result is negative for this LLM-agent environment: under confound control, class size, learner ownership and discussion each fail to predict outcome, the spread across pedagogical conditions collapses to 10 percentage points, and learner cognitive profile dominates at 38. \n\nThis version adds the author's completed self-review of all thirteen units of the work - every generation, the confound audit, and the paper itself - with each reported figure traced to the released databases. The review changed the paper: Section 8 now states the three null results as separate findings rather than bundling them; Section 9 gains three limitations (two of the four readiness items appear as worked examples in the fixed lecture; the L6 semantic judge's verdict never reaches the score field, so no generation here has a validated L6 measurement; one of the four learner types was never instantiated) and quantifies run-to-run variation; the explanation attributing correction-outcome decoupling to a procedural deficit is withdrawn; the cross-version audit table is extended to the generation that resolved pseudoreplication; and one reference DOI is corrected. The review records themselves are released under results/reviews/, stating per generation what was verified against the databases and what is taken on trust. \n\nThe manuscript and the entire research artifact were produced end-to-end by LLM agents (Anthropic Claude) under the direction and review of the human author.",
   "creators": [
     {
       "name": "Kawasaki, Masumi",
@@ -19,7 +19,10 @@
     "educational technology",
     "internal validity",
     "confound control",
-    "Zarn Tokens"
+    "Zarn Tokens",
+    "negative results",
+    "pseudoreplication",
+    "self-review"
   ],
   "related_identifiers": [
     {
@@ -31,8 +34,18 @@
       "identifier": "https://github.com/geeknees/Agent-Based-Theory-Testing-2-Sigma-Problem/blob/main/experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md",
       "relation": "isDocumentedBy",
       "scheme": "url"
+    },
+    {
+      "identifier": "https://github.com/geeknees/Agent-Based-Theory-Testing-2-Sigma-Problem/blob/main/experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md",
+      "relation": "isDocumentedBy",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/",
+      "relation": "isDocumentedBy",
+      "scheme": "url"
     }
   ],
-  "version": "1.0.0",
+  "version": "1.1.0",
   "language": "eng"
 }

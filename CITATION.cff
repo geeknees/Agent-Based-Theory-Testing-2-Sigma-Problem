@@ -1,10 +1,12 @@
 cff-version: 1.2.0
 message: "If you use this work, please cite the working paper."
 type: software
+abstract: "Agent-based test of Bloom's 2-sigma problem in LLM agents, with a confound-aware methodology. Includes the author's completed self-review of every experimental generation, the confound audit and the paper, tracing each reported figure to the released databases. The manuscript and the entire research artifact were produced end-to-end by LLM agents (Anthropic Claude) under the direction and review of the human author."
 title: "Agent-Based Theory Testing: Bloom's 2-Sigma Problem"
-version: 1.0.0
-doi: 10.5281/zenodo.21186083
-date-released: 2026-07-04
+version: 1.1.0
+# Concept DOI: always resolves to the latest version, so it needs no edit per release.
+doi: 10.5281/zenodo.21186082
+date-released: 2026-09-22
 authors:
   - family-names: "Kawasaki"
     given-names: "Masumi"
@@ -19,6 +21,8 @@ keywords:
   - educational technology
   - internal validity
   - confound control
+  - negative results
+  - self-review
 preferred-citation:
   type: unpublished
   title: "Can LLM Agents Test Social-Science Theory? A Confound-Aware Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in LLM Agents"
@@ -26,6 +30,6 @@ preferred-citation:
     - family-names: "Kawasaki"
       given-names: "Masumi"
   year: 2026
-  doi: 10.5281/zenodo.21186083
+  doi: 10.5281/zenodo.21186082
   date-released: 2026-06-16
   url: "https://github.com/geeknees/Agent-Based-Theory-Testing-2-Sigma-Problem/blob/main/experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md"

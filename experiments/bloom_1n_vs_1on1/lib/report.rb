@@ -581,10 +581,10 @@ module Report
     lines = []
     lines << "## L6 (short_rule_induction) — Appendix"
     lines << ""
-    lines << "> L6 is excluded from the main score. The evaluator uses LLM semantic scoring"
-    lines << "> (Option B) for short_rule_induction tasks — exact-match produced 0% across all"
-    lines << "> runs (F2: scorer artifact, v8/v9b/v9c). Results below use LLM judge scores."
-    lines << "> Do not compare directly with exact-match scores from earlier runs."
+    lines << "> L6 is excluded from the main score (A8). Exact-match scoring produced 0%"
+    lines << "> across v8/v9b/v9c regardless of semantic correctness (F2: scorer artifact),"
+    lines << "> so these figures are reported separately and are not comparable across runs"
+    lines << "> that used different scoring paths."
     lines << ""
     if l6.empty?
       lines << "_No L6 attempts found for this run._"
@@ -594,16 +594,51 @@ module Report
     task_ids = l6.map { |r| r['task_id'] }.uniq.sort
     lines << "**L6 task IDs in this run:** #{task_ids.join(', ')}"
     lines << ""
-    by_condition = l6.group_by { |r| r['condition'] }
-    lines << "| Condition | L6 Attempts | Correct (exact-match) | Note |"
-    lines << "|-----------|-------------|----------------------|------|"
-    by_condition.sort.each do |cond, cond_rows|
-      total   = cond_rows.size
-      correct = cond_rows.count { |r| r['answer_correct'] == true || r['answer_correct'] == 1 }
-      lines << "| #{cond} | #{total} | #{correct} | exact-match only — likely undercount |"
+    lines << "| Condition | L6 Attempts | Correct | Scoring path |"
+    lines << "|-----------|-------------|---------|--------------|"
+    l6.group_by { |r| r['condition'] }.sort.each do |cond, cond_rows|
+      lines << l6_condition_row(cond, cond_rows)
     end
     lines << ""
+    if l6.any? { |r| l6_verdict_unrecorded?(r) }
+      lines << "> **Warning:** some rows were routed to the LLM semantic judge, but their verdict"
+      lines << "> is **not recorded** in `answer_correct` — that field is written only on the"
+      lines << "> exact-match path (`lib/scorer.rb`). Those rows are reported as **not measured**,"
+      lines << "> not as zero. Until the semantic path writes `answer_correct`, this run carries"
+      lines << "> no usable L6 accuracy."
+      lines << ""
+    end
     lines.join("\n")
+  end
+
+  # Builds one appendix row, labelled by the path its attempts were actually scored by.
+  def self.l6_condition_row(condition, rows)
+    total       = rows.size
+    unrecorded  = rows.count { |r| l6_verdict_unrecorded?(r) }
+    semantic    = rows.count { |r| l6_semantic?(r) }
+    if unrecorded == total
+      return "| #{condition} | #{total} | — | LLM semantic judge ran; verdict not recorded — not measured |"
+    end
+    correct = rows.count { |r| r['answer_correct'] == true || r['answer_correct'] == 1 }
+    path =
+      if semantic.zero?    then 'exact-match — likely undercount'
+      elsif unrecorded > 0 then "LLM semantic (#{unrecorded} of #{total} verdicts not recorded — not measured)"
+      else                      'LLM semantic'
+      end
+    "| #{condition} | #{total} | #{correct} | #{path} |"
+  end
+
+  # An attempt took the LLM branch when the scorer did not auto-score it.
+  def self.l6_semantic?(row)
+    score = row['score_json'].is_a?(String) ? (JSON.parse(row['score_json']) rescue {}) : (row['score_json'] || {})
+    score['auto_scored'] == false
+  end
+
+  # The LLM branch never writes answer_correct, so a semantic row without it is unmeasured.
+  def self.l6_verdict_unrecorded?(row)
+    return false unless l6_semantic?(row)
+    score = row['score_json'].is_a?(String) ? (JSON.parse(row['score_json']) rescue {}) : (row['score_json'] || {})
+    !score.key?('answer_correct') || score['answer_correct'].nil?
   end
 
   def self.avg_correctness(rows)

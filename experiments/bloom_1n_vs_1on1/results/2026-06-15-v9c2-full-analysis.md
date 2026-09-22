@@ -14,7 +14,7 @@
 
 ### 中心的な問い
 
-v9c の独立監査（[[v9c-methodology-addendum]]）で確認された5つの方法論的confound（F1-F5）のうち、再実行でしか解決できない4項目（A0/A3/A5/A6/A8）をすべて修正した上で、v9c が答えられなかった2つの問いに再挑戦する：
+v9c の独立監査（[[v9c-methodology-addendum]]）で確認された5つの方法論的confound（F1-F5）のうち、再実行でしか解決できない5項目（A0/A3/A5/A6/A8）をすべて修正した上で、v9c が答えられなかった2つの問いに再挑戦する：
 
 ① 事前知識の準備状態（Readiness）が80%目標を達成した条件で、クラスサイズは学習アウトカムに影響するか？
 ② Readiness が担保されれば、Ownership（能動的関与度）とアウトカムは相関するか？
@@ -58,9 +58,16 @@ v9c の独立監査（[[v9c-methodology-addendum]]）で確認された5つの�
 **`readiness_failed: false`（90% ≥ 80% 目標）** — v9c2 では初めて Readiness ゲートを通過した。
 
 v9c との比較：
-- recall: 79% → **91%（+12pp）**
-- rule_interaction: 43% → **85%（+42pp）**
-- procedure_order: 36% → **85%（+49pp）**
+- recall: 68% → **91%（+23pp）**
+- rule_interaction: 50% → **85%（+35pp）**
+- procedure_order: 59% → **85%（+26pp）**
+
+*2026-09-05 セルフ査読で修正: 旧版は「recall 79% / rule_interaction 43% / procedure_order 36%」を
+v9c の値として記載していたが、これは **`experiment_v9c2_smoke.db`（本 run 自身のスモークテスト）の値**であり、
+v9c 本番 run（`experiment_v9c.db`, `b412cfdb`）の実測は 68% / 50% / 59% である。
+旧版は procedure_order の改善幅を +49pp と約2倍に誇張し、recall の改善幅を過小評価していた。
+なお §5 の比較表は v9c の readiness pass rate を 69% と正しく記載しており、文書内で基準が
+不一致になっていた。*
 - edge_case: 100% → 100%（維持）
 
 n=154（v9cのn=34から約4.5倍）への規模拡大も寄与しているが、`rule_interaction` と `procedure_order` の伸びが特に大きく、v9cで指摘された「手順的知識の定着不足」が大幅に改善した。これにより、**本runの条件間比較は v9c よりも信頼できる解釈基盤の上にある**。
@@ -178,7 +185,10 @@ discussion-level SD は learner-level SD よりも一貫して小さい — こ�
 | High-confidence wrong | 2% |
 | Abstention | 4% |
 
-v9cの「High-confidence wrong: 15%」から大幅改善（-13pp）。Readiness改善が「自信過剰な誤答」を減らした可能性を示唆する。
+v9cの「High-confidence wrong: **12.9%**」から大幅改善（**-11.3pp**）。Readiness改善が「自信過剰な誤答」を減らした可能性を示唆する。
+
+*2026-09-05 セルフ査読で修正: 旧版は v9c の値を 15%（改善幅 -13pp）と記載していたが、
+`experiment_v9c.db` の実測は 12.9% である。v9c2 側の 2%（実測 1.6%）は一致。*
 
 ### 3.6 Fine-Grained Memory Coverage（10 items, post-discussion）
 
@@ -307,6 +317,9 @@ v9c では learner type 間の最大差は8pp（rule_extractor 67% vs passive_li
 3. **L6 (short_rule_induction) は本 run では知見なし。ただし次 run で LLM 採点が有効化** — Option A（main scoreから除外）を本 run で採用したため、L6の比較知見はない。本 run 終了後に `SEMANTIC_TASK_TYPES = %w[short_rule_induction]` を実装し、次 run から LLM semantic scorer で採点される（appendix参照、セクション7）。main score 除外は次 run での結果検証まで継続。
 
 4. **A5（evaluator triplication）は意図的に未実装** — `eval_tasks_v8.json` の全タスクが文字列 `expected_answer` を持つため、`Phases::Evaluator.score` は常にLLM分岐に到達せず、evaluatorの複数化は追加のLLM呼び出しを生まないno-opとなる。実装計画書に明記の通り、F5b（evaluatorの単一性）はこのタスクセットでは実質的に問題化しない。L6 semantic scorer（Option B 実装後）では再検討が必要。
+
+5. **限界項目 5 は欠番** — 旧版から番号が 1,2,3,4,6,7 と飛んでいた。削除された項目の内容は不明。
+   2026-09-05 セルフ査読で番号の欠落のみ記録し、内容の復元は行っていない。
 
 6. **medium_class_discussion_size_8 の「最高スコア」は1回のbest-of-5かもしれない** — discussion-level SD=0.076は他条件と大差ないため、mediumの86%が「真の効果」か「5回の独立discussionの中での偶然の最大値」かは、本データだけでは判別できない。
 

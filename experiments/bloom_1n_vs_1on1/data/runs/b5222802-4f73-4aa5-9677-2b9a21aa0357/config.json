@@ -1,0 +1,28 @@
+{
+  "experiment": {
+    "name": "bloom_learner_types_v6_smoke",
+    "domain": "zarn_tokens",
+    "n_homogeneous_classroom": 1,
+    "n_heterogeneous_classroom": 1,
+    "n_tutoring": 1,
+    "n_no_education": 1,
+    "tutoring_turns": 4,
+    "eval_tasks_file": "eval_tasks_v4.json",
+    "max_memory_words": 120,
+    "ceiling_threshold": 0.9
+  },
+  "models": {
+    "teacher": "claude-haiku-4-5-20251001",
+    "tutor": "claude-haiku-4-5-20251001",
+    "learner": "claude-haiku-4-5-20251001",
+    "memory_summarizer": "claude-haiku-4-5-20251001",
+    "problem_solver": "claude-haiku-4-5-20251001",
+    "evaluator": "claude-haiku-4-5-20251001"
+  },
+  "paths": {
+    "prompts": "experiments/bloom_1n_vs_1on1/prompts",
+    "domain": "experiments/bloom_1n_vs_1on1/domains/zarn_tokens",
+    "output": "experiments/bloom_1n_vs_1on1/data",
+    "db": "experiments/bloom_1n_vs_1on1/data/smoke_test.db"
+  }
+}

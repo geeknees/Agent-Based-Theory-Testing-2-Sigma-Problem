@@ -28,11 +28,27 @@ for genuine replication, and a *readiness gate* for prerequisite control.
 > experiment does not claim LLM agents are human learners; "learning" is
 > operationalized as condition-specific memory formed from interaction
 > transcripts (model weights are not updated).
+>
+> **AI involvement:** The manuscript and the entire research artifact — code,
+> experiments, analyses, and paper text — were produced end-to-end by LLM
+> agents (Anthropic Claude) under the direction and review of the human
+> author, who takes full responsibility for the content.
 
 ## The paper
 
+- **PDF:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.pdf`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.pdf) (18 pages, built from the LaTeX source with `tectonic`)
 - **Markdown:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md)
 - **LaTeX:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex)
+- **Japanese translation:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md) (the English text is authoritative)
+
+## Research journal
+
+The day-by-day development record — what was decided each generation and why —
+is published separately at
+**[Experimental Commons](https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/)**.
+It is the narrative companion to the per-version analyses in `results/`: where
+those documents report what a run produced, the journal records what the run
+was for and what changed afterwards.
 
 ## Repository layout
 
@@ -43,10 +59,17 @@ for genuine replication, and a *readiness gate* for prerequisite control.
 | `experiments/bloom_1n_vs_1on1/results/` | Per-version analyses, methodology addenda, and the paper |
 | `experiments/bloom_1n_vs_1on1/config/` | One config per generation (plus haiku `*_smoke.yml` variants) |
 | `docs/superpowers/plans/` | Design plans for each generation (development record) |
+| `experiments/bloom_1n_vs_1on1/results/reviews/` | The author's self-review of every generation, the audit, and the paper |
 
-Per-run databases and raw run directories (`data/runs/`, `data/*.db`) are
-gitignored; the per-version analysis documents in `results/` carry the reported
-numbers and run identifiers (see the paper's Appendix A run index).
+The research journal is not in this repository; it is published at
+[Experimental Commons](https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/).
+
+The raw per-run SQLite databases (`data/*.db`) and run directories
+(`data/runs/`) are included in the repository (the ablation run's database was
+lost — its generated report is preserved verbatim in `results/`). The
+per-version analysis documents in `results/` carry the reported numbers and
+run identifiers (see the paper's Appendix A run index), and every production
+run's headline figures have been re-verified against the released databases.
 
 ## Running the experiment
 
@@ -71,8 +94,12 @@ If you use this work, please cite the working paper.
 ```
 Kawasaki, Masumi. "Can LLM Agents Test Social-Science Theory? A Confound-Aware
 Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in
-LLM Agents." Working paper, 2026. https://doi.org/10.5281/zenodo.21186083
+LLM Agents." Working paper, 2026. https://doi.org/10.5281/zenodo.21186082
 ```
+
+(That is the concept DOI, which always resolves to the latest version. Each
+release also gets its own version DOI — v1.0.0 is `10.5281/zenodo.21186083` —
+if you need to cite a specific one.)
 
 ## License
 

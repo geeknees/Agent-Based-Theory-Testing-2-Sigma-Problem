@@ -11,13 +11,24 @@ LLM エージェントは社会科学の理論を検証する**実験台**にな
 本論文のより普遍的な貢献は方法論にあります。エージェントによる理論検証のための**交絡を意識したフレームワーク**——5系統の交絡分類(F1–F5)、是正レシピ(A コード)、真の反復のための*population-multiplication* 設計、前提知識統制のための*readiness gate*——です。
 
 > **ステータス:** ワーキングペーパー — 査読は受けていません。これは探索的な理論検証とプロトコル開発であり、いかなる教育的主張の証明でもありません。本実験は LLM エージェントが人間の学習者であるとは主張しません。「学習」は対話トランスクリプトから形成される条件固有のメモリとして操作化されています(モデルの重みは更新しません)。
+>
+> **AI 関与について:** 本論文および研究成果物一式(コード・実験・分析・論文本文)は、人間の著者の指示とレビューのもと、LLM エージェント(Anthropic Claude)がエンドツーエンドで作成したものです。内容の最終責任は人間の著者が負います。
 
 ## 論文
 
-- **Markdown:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md)
-- **LaTeX:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex)
+- **日本語版(Markdown):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md)
+- **英語版(PDF):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.pdf`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.pdf)(18ページ。LaTeX ソースから `tectonic` で生成)
+- **英語版(Markdown):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md)
+- **英語版(LaTeX):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex)
 
-※ 論文本文は英語です。
+※ 日本語版は英語版の訳です。数値・run 識別子・引用文献は同一で、差異が生じた場合は英語版を正とします。
+
+## 研究日誌
+
+世代ごとに何を決め、なぜそうしたかという日々の開発記録は、
+**[Experimental Commons](https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/)** で別途公開しています。
+`results/` の世代別分析が「その run が何を出したか」を報告するのに対し、
+日誌は「その run が何のためのもので、その後何が変わったか」を記録しています。
 
 ## リポジトリ構成
 
@@ -28,8 +39,11 @@ LLM エージェントは社会科学の理論を検証する**実験台**にな
 | `experiments/bloom_1n_vs_1on1/results/` | 世代ごとの分析、方法論の補遺、論文 |
 | `experiments/bloom_1n_vs_1on1/config/` | 世代ごとの設定(haiku 用の `*_smoke.yml` を含む) |
 | `docs/superpowers/plans/` | 各世代の設計プラン(開発記録) |
+| `experiments/bloom_1n_vs_1on1/results/reviews/` | 著者本人による全世代・監査・論文のセルフ査読記録 |
 
-実行ごとのデータベースと生の実行ディレクトリ(`data/runs/`、`data/*.db`)は gitignore 対象です。報告された数値と run 識別子は `results/` 内の世代別分析ドキュメントに記載されています(論文 Appendix A の run index 参照)。
+研究日誌は本リポジトリには含まれていません。[Experimental Commons](https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/) で公開しています。
+
+実行ごとの生 SQLite データベース(`data/*.db`)と run ディレクトリ(`data/runs/`)はリポジトリに含まれています(ablation run の DB のみ紛失——生成済み run report を `results/` に verbatim で保存)。報告された数値と run 識別子は `results/` 内の世代別分析ドキュメントに記載されており(論文 Appendix A の run index 参照)、全本番 run の主要数値は公開 DB と突合検証済みです。
 
 ## 実験の実行
 
@@ -52,6 +66,8 @@ Kawasaki, Masumi. "Can LLM Agents Test Social-Science Theory? A Confound-Aware
 Framework and a Seven-Generation Negative Result on Bloom's 2-Sigma Problem in
 LLM Agents." Working paper, 2026. https://doi.org/10.5281/zenodo.21186083
 ```
+
+(冒頭のバッジは concept DOI `10.5281/zenodo.21186082`(常に最新バージョンを指す)を、引用は v1.0.0 の version DOI を使用しています。)
 
 ## ライセンス
 

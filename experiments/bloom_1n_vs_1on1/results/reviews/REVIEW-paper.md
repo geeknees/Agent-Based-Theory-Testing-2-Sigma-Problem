@@ -1,6 +1,6 @@
 # 論文 §6–§9 人間セルフ査読記録
 
-査読者: masumi / 日付: 2026-09-22 / 所要: ____
+査読者: masumi / 日付: 2026-09-22 / 所要: 120min
 プロトコル: `docs/templates/human-review-protocol.md`(重み: **フル**)
 対象: `results/2026-06-16-paper-draft.md` / `.tex`。とくに **§6 Confound Taxonomy・§7 v9c2・
 §8 Cross-Cutting Findings・§9 Limitations**。

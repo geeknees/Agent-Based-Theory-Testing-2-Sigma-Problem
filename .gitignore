@@ -1,3 +1,9 @@
 Gemfile.lock
 *.log
 .DS_Store
+
+# 研究日誌はこのリポジトリでは管理せず、Experimental Commons で公開している。
+# https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/
+# ローカルの docs/journal/ は開発期(2026-05-13〜07-04)の日次記録で、
+# 公開版はそれを1エントリへ再構成したものなので、両者の内容は同一ではない。
+docs/journal/

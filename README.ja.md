@@ -21,6 +21,13 @@ LLM エージェントは社会科学の理論を検証する**実験台**にな
 
 ※ 論文本文は英語です。
 
+## 研究日誌
+
+世代ごとに何を決め、なぜそうしたかという日々の開発記録は、
+**[Experimental Commons](https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/)** で別途公開しています。
+`results/` の世代別分析が「その run が何を出したか」を報告するのに対し、
+日誌は「その run が何のためのもので、その後何が変わったか」を記録しています。
+
 ## リポジトリ構成
 
 | パス | 内容 |
@@ -30,6 +37,9 @@ LLM エージェントは社会科学の理論を検証する**実験台**にな
 | `experiments/bloom_1n_vs_1on1/results/` | 世代ごとの分析、方法論の補遺、論文 |
 | `experiments/bloom_1n_vs_1on1/config/` | 世代ごとの設定(haiku 用の `*_smoke.yml` を含む) |
 | `docs/superpowers/plans/` | 各世代の設計プラン(開発記録) |
+| `experiments/bloom_1n_vs_1on1/results/reviews/` | 著者本人による全世代・監査・論文のセルフ査読記録 |
+
+研究日誌は本リポジトリには含まれていません。[Experimental Commons](https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/) で公開しています。
 
 実行ごとの生 SQLite データベース(`data/*.db`)と run ディレクトリ(`data/runs/`)はリポジトリに含まれています(ablation run の DB のみ紛失——生成済み run report を `results/` に verbatim で保存)。報告された数値と run 識別子は `results/` 内の世代別分析ドキュメントに記載されており(論文 Appendix A の run index 参照)、全本番 run の主要数値は公開 DB と突合検証済みです。
 

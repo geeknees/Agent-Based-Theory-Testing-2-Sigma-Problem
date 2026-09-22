@@ -39,6 +39,15 @@ for genuine replication, and a *readiness gate* for prerequisite control.
 - **Markdown:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md)
 - **LaTeX:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex)
 
+## Research journal
+
+The day-by-day development record — what was decided each generation and why —
+is published separately at
+**[Experimental Commons](https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/)**.
+It is the narrative companion to the per-version analyses in `results/`: where
+those documents report what a run produced, the journal records what the run
+was for and what changed afterwards.
+
 ## Repository layout
 
 | Path | Contents |
@@ -48,6 +57,10 @@ for genuine replication, and a *readiness gate* for prerequisite control.
 | `experiments/bloom_1n_vs_1on1/results/` | Per-version analyses, methodology addenda, and the paper |
 | `experiments/bloom_1n_vs_1on1/config/` | One config per generation (plus haiku `*_smoke.yml` variants) |
 | `docs/superpowers/plans/` | Design plans for each generation (development record) |
+| `experiments/bloom_1n_vs_1on1/results/reviews/` | The author's self-review of every generation, the audit, and the paper |
+
+The research journal is not in this repository; it is published at
+[Experimental Commons](https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/).
 
 The raw per-run SQLite databases (`data/*.db`) and run directories
 (`data/runs/`) are included in the repository (the ablation run's database was

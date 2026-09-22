@@ -22,7 +22,8 @@
       分析ドキュメント `results/2026-*-<vN>-analysis.md` /
       run report `data/runs/<run_id>/report.md`(または `scripts/regen_report.rb` で再生成)/
       DB `data/experiment_<vN>.db` / `data/runs/<run_id>/scores.csv` /
-      計算コード `lib/report.rb`・`lib/scorer.rb` / 設計プラン `docs/superpowers/plans/` / 日誌 `docs/journal/`
+      計算コード `lib/report.rb`・`lib/scorer.rb` / 設計プラン `docs/superpowers/plans/` /
+      日誌(別公開: https://kotowari-modoki.github.io/experimental-commons/research/agent-based-theory-testing-2-sigma-problem/ )
 - [ ] run_id ↔ DB の対応は監査表(`results/2026-06-08-v4-v9c-replication-confound-audit-table.md`)の
       対応表で確認する
 - [ ] この世代で**途中方針転換があったか**を日誌・設計プラン・git log で確認。

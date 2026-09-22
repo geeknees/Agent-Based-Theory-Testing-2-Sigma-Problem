@@ -876,6 +876,17 @@ We constrain our claims tightly.
     without fixed RNG seeds, so runs are not bit-reproducible.  Analyses regenerate
     deterministically from each run's frozen outputs, but an exact re-run will
     differ; seeded constraint application is planned for the next generation.
+    The scale of that variation is worth stating concretely, because it bounds what
+    any cross-generation comparison can carry: on the \emph{same} fixed lecture and
+    the \emph{same} readiness check, the \texttt{rule\_interaction} pass rate was
+    50\% in v9c, 85\% in v9c2, and \textbf{12\%} in the ablation --- a range four to
+    five binomial standard errors wide at $n$=34, which we cannot attribute to
+    sampling alone and have not otherwise explained.  A related pattern: the two runs
+    whose readiness gate failed (v9c, 37 points; the ablation, 25 points) both have
+    the same two conditions at the ends of their spread --- the two-learner pair and
+    the four-learner lecture arm --- whereas the controlled run does not (v9c2 runs
+    from medium at 86\% to small at 76\%).  Whatever produced the large early
+    spreads, it did not survive readiness control, but neither have we isolated it.
   \item \textbf{Reflexivity of AI authorship.}  As disclosed in the front matter,
     this study was designed, executed, and written by LLM agents of the same model
     family as its experimental subjects, under human direction and review.  We flag

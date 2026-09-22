@@ -17,6 +17,7 @@ LLM エージェントは社会科学の理論を検証する**実験台**にな
 ## 論文
 
 - **日本語版(Markdown):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md)
+- **英語版(PDF):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.pdf`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.pdf)(18ページ。LaTeX ソースから `tectonic` で生成)
 - **英語版(Markdown):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md)
 - **英語版(LaTeX):** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex)
 

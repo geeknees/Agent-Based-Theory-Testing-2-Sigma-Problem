@@ -36,6 +36,7 @@ for genuine replication, and a *readiness gate* for prerequisite control.
 
 ## The paper
 
+- **PDF:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.pdf`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.pdf) (18 pages, built from the LaTeX source with `tectonic`)
 - **Markdown:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.md)
 - **LaTeX:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.tex)
 - **Japanese translation:** [`experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md`](experiments/bloom_1n_vs_1on1/results/2026-06-16-paper-draft.ja.md) (the English text is authoritative)

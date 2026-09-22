@@ -7,3 +7,10 @@ Gemfile.lock
 # ローカルの docs/journal/ は開発期(2026-05-13〜07-04)の日次記録で、
 # 公開版はそれを1エントリへ再構成したものなので、両者の内容は同一ではない。
 docs/journal/
+
+# LaTeX の中間生成物(PDF 本体は成果物としてコミットする)
+*.aux
+*.xdv
+*.out
+*.toc
+*.synctex.gz
